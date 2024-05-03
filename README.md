@@ -28,32 +28,7 @@ Rucbase是一个精简的RDBMS原型系统，用于《数据库系统实现》�
 
 欲了解如何在非Linux系统PC上部署实验环境的指导，请查阅[Rucbase环境配置文档](docs/Rucbase环境配置文档.md)
 
-## 实验文档索引
-
-> 这里给出目前公开的文档分类索引
-
-### 开发规范文档
-
-- [Rucbase开发文档](docs/Rucbase开发文档.md)
-
-### 项目说明文档
-
-- [Rucbase环境配置文档](docs/Rucbase环境配置文档.md)
-- [Rucbase使用文档](docs/Rucbase使用文档.md)
-- [Rucbase项目结构](docs/Rucbase项目结构.md)
-
-### 学生实验文档(2022-10-26日更新)
-
-> 请使用命令git pull来拉取最新的实验文档
-
-- [Rucbase学生实验操作说明示例](docs/Rucbase学生实验操作说明示例.md)
-- [Rucbase-Lab1存储管理实验文档](docs/Rucbase-Lab1[存储管理实验文档].md)
-- [Rucbase-Lab2索引管理实验文档](docs/Rucbase-Lab2[索引管理实验文档].md)
-- [Rucbase-Lab3查询执行实验文档](docs/Rucbase-Lab3[查询执行实验文档].md)
-- [Rucbase-Lab3查询执行实验指导](docs/Rucbase-Lab3[查询执行实验指导].md)
-- [Rucbase-Lab4并发控制实验文档](docs/Rucbase-Lab4[并发控制实验文档].md)
-
-### 时间安排和工作量估计
+## 时间安排和工作量估计
 
 | **实验**     | **发布时间**      | **截止时间**      | **工作量估计** | **难度系数** |
 | ------------ | ----------------- | ----------------- | -------------- | ------------ |
