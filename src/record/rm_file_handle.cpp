@@ -85,8 +85,21 @@ RmPageHandle RmFileHandle::create_new_page_handle() {
     PageId page_id;
     page_id.fd = fd_;
     Page* page = buffer_pool_manager_->NewPage(&page_id);
+    if (page == nullptr)
+        return RmPageHandle(&file_hdr_, nullptr);
 
-    return RmPageHandle(&file_hdr_, nullptr);
+    // 创建RMPageHandle
+    RmPageHandle page_handle(&file_hdr_, page);
+    // 更新page_handle,置page_header为file header中第一个可用的page
+    page_handle.page_hdr->next_free_page_no = file_hdr_.first_free_page_no;
+    // 初始化当前page分配到record个数为0
+    page_handle.page_hdr->num_records = 0;
+    // 初始化页句柄的bitmap,全部置0
+    Bitmap::init(page_handle.bitmap, file_hdr_.bitmap_size);
+    // 更新file_hdr 分配的page个数和当前第一个可用的page no
+    file_hdr_.num_pages++;
+    file_hdr_.first_free_page_no = page_id.page_no;
+    return page_handle;
 }
 
 /**
