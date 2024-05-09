@@ -1,0 +1,38 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/ty/code/rucbase-lab-master/rucbase_client/main.cpp
+netdb.h
+-
+netinet/in.h
+-
+readline/history.h
+-
+readline/readline.h
+-
+sys/socket.h
+-
+sys/time.h
+-
+sys/types.h
+-
+sys/un.h
+-
+termios.h
+-
+unistd.h
+-
+cassert
+-
+iostream
+-
+memory
+-
+string
+-
+
