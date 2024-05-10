@@ -11,6 +11,8 @@ std::unique_ptr<RmRecord> RmFileHandle::get_record(const Rid& rid,
     // Todo:
     // 1. 获取指定记录所在的page handle
     // 2. 初始化一个指向RmRecord的指针（赋值其内部的data和size）
+    auto page_handle = fetch_page_handle(rid.page_no);
+    int record_size = file_hdr_.record_size;
 
     return nullptr;
 }
@@ -68,8 +70,21 @@ RmPageHandle RmFileHandle::fetch_page_handle(int page_no) const {
     // Todo:
     // 使用缓冲池获取指定页面，并生成page_handle返回给上层
     // if page_no is invalid, throw PageNotExistError exception
-
-    return RmPageHandle(&file_hdr_, nullptr);
+    // 构建页
+    // invalid page_no
+    if (page_no == INVALID_PAGE_ID ||
+        page_no >= RmFileHandle::file_hdr_.num_pages)
+        throw PageNotExistError("", page_no);
+    PageId page_id;
+    page_id.page_no = page_no;
+    page_id.fd = fd_;
+    // 从缓冲区取页
+    Page* page = buffer_pool_manager_->FetchPage(page_id);
+    // 没有这个页
+    if (page == nullptr)
+        throw PageNotExistError("", page_no);
+    // 返回要取的页的句柄
+    return RmPageHandle(&file_hdr_, page);
 }
 
 /**
@@ -90,14 +105,15 @@ RmPageHandle RmFileHandle::create_new_page_handle() {
 
     // 创建RMPageHandle
     RmPageHandle page_handle(&file_hdr_, page);
-    // 更新page_handle,置page_header为file header中第一个可用的page
+    // 更新page_handle,链式结构，当前句柄的下一个可用页为文件头指的第一个可用页
     page_handle.page_hdr->next_free_page_no = file_hdr_.first_free_page_no;
     // 初始化当前page分配到record个数为0
     page_handle.page_hdr->num_records = 0;
     // 初始化页句柄的bitmap,全部置0
     Bitmap::init(page_handle.bitmap, file_hdr_.bitmap_size);
-    // 更新file_hdr 分配的page个数和当前第一个可用的page no
+    // 更新file_hdr 分配的page个数
     file_hdr_.num_pages++;
+    // 文件头第一个可用页指向新建的page
     file_hdr_.first_free_page_no = page_id.page_no;
     return page_handle;
 }
@@ -115,8 +131,11 @@ RmPageHandle RmFileHandle::create_page_handle() {
     //     没有空闲页：使用缓冲池来创建一个新page；可直接调用create_new_page_handle()
     //     1.2 有空闲页：直接获取第一个空闲页
     // 2. 生成page handle并返回给上层
-
-    return RmPageHandle(&file_hdr_, nullptr);
+    page_id_t page_no = file_hdr_.first_free_page_no;
+    if (page_no != RM_NO_PAGE)
+        return fetch_page_handle(page_no);
+    else
+        return create_new_page_handle();
 }
 
 /**
@@ -130,6 +149,9 @@ void RmFileHandle::release_page_handle(RmPageHandle& page_handle) {
     // 当page从已满变成未满，考虑如何更新：
     // 1. page_handle.page_hdr->next_free_page_no
     // 2. file_hdr_.first_free_page_no
+    // 未满则可用
+    page_handle.page_hdr->next_free_page_no = file_hdr_.first_free_page_no;
+    file_hdr_.first_free_page_no = page_handle.page->GetPageId().page_no;
 }
 
 /**
