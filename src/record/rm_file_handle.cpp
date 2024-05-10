@@ -42,6 +42,7 @@ Rid RmFileHandle::insert_record(char* buf, Context* context) {
     // 找空闲槽
     int max_record_num = file_hdr_.num_records_per_page;
     int slot_no = Bitmap::first_bit(false, page_handle.bitmap, max_record_num);
+
     // buf复制到空闲槽位置
     std::memcpy(page_handle.get_slot(slot_no), buf, file_hdr_.record_size);
     Bitmap::set(page_handle.bitmap, slot_no);
@@ -63,9 +64,11 @@ void RmFileHandle::delete_record(const Rid& rid, Context* context) {
     // 2. 更新page_handle.page_hdr中的数据结构
     // 注意考虑删除一条记录后页面未满的情况，需要调用release_page_handle()
     auto page_handle = fetch_page_handle(rid.page_no);
-    if (!Bitmap::is_set(page_handle.slots, rid.slot_no))
+    // 能找到则删除
+    if (!Bitmap::is_set(page_handle.bitmap, rid.slot_no))
         throw RecordNotFoundError(rid.page_no, rid.slot_no);
-    Bitmap::reset(page_handle.slots, rid.slot_no);
+    Bitmap::reset(page_handle.bitmap, rid.slot_no);
+    // 如果未满则置为可用
     if (page_handle.page_hdr->num_records-- == file_hdr_.num_records_per_page)
         release_page_handle(page_handle);
 }
@@ -81,10 +84,10 @@ void RmFileHandle::update_record(const Rid& rid, char* buf, Context* context) {
     // 1. 获取指定记录所在的page handle
     // 2. 更新记录
     auto page_handle = fetch_page_handle(rid.page_no);
-    if (!Bitmap::is_set(page_handle.slots, rid.slot_no))
+    if (!Bitmap::is_set(page_handle.bitmap, rid.slot_no))
         throw RecordNotFoundError(rid.page_no, rid.slot_no);
     // 更新记录
-    std::memcpy(page_handle.get_slot(rid.slot_no), buf, file_hdr_.bitmap_size);
+    std::memcpy(page_handle.get_slot(rid.slot_no), buf, file_hdr_.record_size);
 }
 
 /** -- 以下为辅助函数 -- */
@@ -101,8 +104,7 @@ RmPageHandle RmFileHandle::fetch_page_handle(int page_no) const {
     // if page_no is invalid, throw PageNotExistError exception
     // 构建页
     // invalid page_no
-    if (page_no == INVALID_PAGE_ID ||
-        page_no >= RmFileHandle::file_hdr_.num_pages)
+    if (page_no >= RmFileHandle::file_hdr_.num_pages)
         throw PageNotExistError("", page_no);
     PageId page_id;
     page_id.page_no = page_no;
@@ -128,9 +130,8 @@ RmPageHandle RmFileHandle::create_new_page_handle() {
     // 3.更新file_hdr_
     PageId page_id;
     page_id.fd = fd_;
+    // 新建page
     Page* page = buffer_pool_manager_->NewPage(&page_id);
-    if (page == nullptr)
-        return RmPageHandle(&file_hdr_, nullptr);
 
     // 创建RMPageHandle
     RmPageHandle page_handle(&file_hdr_, page);

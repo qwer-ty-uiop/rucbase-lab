@@ -28,9 +28,9 @@ void RmScan::next() {
     for (; rid_.page_no < file_handle_->file_hdr_.num_pages; rid_.page_no++) {
         rid_.slot_no = Bitmap::next_bit(
             true, file_handle_->fetch_page_handle(rid_.page_no).bitmap,
-            file_handle_->file_hdr_.num_records_per_page, rid_.page_no);
+            file_handle_->file_hdr_.num_records_per_page, rid_.slot_no);
         // 找到了就返回
-        if (rid_.slot_no != file_handle_->file_hdr_.num_records_per_page)
+        if (rid_.slot_no < file_handle_->file_hdr_.num_records_per_page)
             return;
         rid_.slot_no = -1;
     }
