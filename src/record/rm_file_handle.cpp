@@ -11,10 +11,18 @@ std::unique_ptr<RmRecord> RmFileHandle::get_record(const Rid& rid,
     // Todo:
     // 1. 获取指定记录所在的page handle
     // 2. 初始化一个指向RmRecord的指针（赋值其内部的data和size）
-    auto page_handle = fetch_page_handle(rid.page_no);
-    int record_size = file_hdr_.record_size;
 
-    return nullptr;
+    // 获取page_no所在的page_handle
+    auto page_handle = fetch_page_handle(rid.page_no);
+    // 创建RmRecord指针
+    int record_size = file_hdr_.record_size;
+    auto record = std::make_unique<RmRecord>(record_size);
+    // 为指针赋值
+    char* data_ptr = page_handle.get_slot(rid.slot_no);
+    std::memcpy(record->data, data_ptr, record_size);
+    record->size = record_size;
+
+    return record;
 }
 
 /**
@@ -30,8 +38,18 @@ Rid RmFileHandle::insert_record(char* buf, Context* context) {
     // 3. 将buf复制到空闲slot位置
     // 4. 更新page_handle.page_hdr中的数据结构
     // 注意考虑插入一条记录后页面已满的情况，需要更新file_hdr_.first_free_page_no
+    auto page_handle = create_page_handle();
+    // 找空闲槽
+    int max_record_num = file_hdr_.num_records_per_page;
+    int slot_no = Bitmap::first_bit(false, page_handle.slots, max_record_num);
+    // buf复制到空闲槽位置
+    std::memcpy(page_handle.get_slot(slot_no), buf, file_hdr_.record_size);
+    Bitmap::set(page_handle.bitmap, slot_no);
+    // 更新page_handle.page_hdr,存的元组到达上限了则更新第一个可用page_no
+    if (++page_handle.page_hdr->num_records == max_record_num)
+        file_hdr_.first_free_page_no = page_handle.page_hdr->next_free_page_no;
 
-    return Rid{-1, -1};
+    return Rid{page_handle.page->GetPageId().page_no, slot_no};
 }
 
 /**
@@ -44,6 +62,12 @@ void RmFileHandle::delete_record(const Rid& rid, Context* context) {
     // 1. 获取指定记录所在的page handle
     // 2. 更新page_handle.page_hdr中的数据结构
     // 注意考虑删除一条记录后页面未满的情况，需要调用release_page_handle()
+    auto page_handle = fetch_page_handle(rid.page_no);
+    if (!Bitmap::is_set(page_handle.slots, rid.slot_no))
+        throw RecordNotFoundError(rid.page_no, rid.slot_no);
+    Bitmap::reset(page_handle.slots, rid.slot_no);
+    if (page_handle.page_hdr->num_records-- == file_hdr_.num_records_per_page)
+        release_page_handle(page_handle);
 }
 
 /**
@@ -56,6 +80,11 @@ void RmFileHandle::update_record(const Rid& rid, char* buf, Context* context) {
     // Todo:
     // 1. 获取指定记录所在的page handle
     // 2. 更新记录
+    auto page_handle = fetch_page_handle(rid.page_no);
+    if (!Bitmap::is_set(page_handle.slots, rid.slot_no))
+        throw RecordNotFoundError(rid.page_no, rid.slot_no);
+    // 更新记录
+    std::memcpy(page_handle.get_slot(rid.slot_no), buf, file_hdr_.bitmap_size);
 }
 
 /** -- 以下为辅助函数 -- */
