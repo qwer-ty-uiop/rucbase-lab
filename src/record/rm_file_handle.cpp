@@ -41,7 +41,7 @@ Rid RmFileHandle::insert_record(char* buf, Context* context) {
     auto page_handle = create_page_handle();
     // 找空闲槽
     int max_record_num = file_hdr_.num_records_per_page;
-    int slot_no = Bitmap::first_bit(false, page_handle.slots, max_record_num);
+    int slot_no = Bitmap::first_bit(false, page_handle.bitmap, max_record_num);
     // buf复制到空闲槽位置
     std::memcpy(page_handle.get_slot(slot_no), buf, file_hdr_.record_size);
     Bitmap::set(page_handle.bitmap, slot_no);
