@@ -29,7 +29,13 @@ void RmScan::next() {
         rid_.slot_no = Bitmap::next_bit(
             true, file_handle_->fetch_page_handle(rid_.page_no).bitmap,
             file_handle_->file_hdr_.num_records_per_page, rid_.page_no);
+        // 找到了就返回
+        if (rid_.slot_no != file_handle_->file_hdr_.num_records_per_page)
+            return;
+        rid_.slot_no = -1;
     }
+    // 遍历所有page都没找到，则没有页
+    rid_.page_no = RM_NO_PAGE;
 }
 
 /**
@@ -37,7 +43,7 @@ void RmScan::next() {
  */
 bool RmScan::is_end() const {
     // Todo: 修改返回值
-    return false;
+    return rid_.page_no == RM_NO_PAGE;
 }
 
 /**
@@ -45,5 +51,5 @@ bool RmScan::is_end() const {
  */
 Rid RmScan::rid() const {
     // Todo: 修改返回值
-    return Rid{-1, -1};
+    return rid_;
 }
