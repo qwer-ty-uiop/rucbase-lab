@@ -24,8 +24,13 @@ IxNodeHandle *IxIndexHandle::FindLeafPage(const char *key, Operation operation, 
     // 1. 获取根节点
     // 2. 从根节点开始不断向下查找目标key
     // 3. 找到包含该key值的叶子结点停止查找，并返回叶子节点
-
-    return nullptr;
+    auto node_handle = FetchNode(file_hdr_.root_page);
+    while (!node_handle->IsLeafPage()) {
+        page_id_t page_id = node_handle->InternalLookup(key);
+        release_node_handle(*node_handle);
+        node_handle = FetchNode(page_id);
+    }
+    return node_handle;
 }
 
 /**
@@ -42,8 +47,12 @@ bool IxIndexHandle::GetValue(const char *key, std::vector<Rid> *result, Transact
     // 2. 在叶子节点中查找目标key值的位置，并读取key对应的rid
     // 3. 把rid存入result参数中
     // 提示：使用完buffer_pool提供的page之后，记得unpin page；记得处理并发的上锁
-
-    return false;
+    result->clear();
+    auto node_handle = FindLeafPage(key, Operation::FIND, transaction);
+    Rid **rid;
+    if (!node_handle->LeafLookup(key, rid)) return false;
+    result->push_back(**rid);
+    return true;
 }
 
 /**
@@ -76,7 +85,8 @@ IxNodeHandle *IxIndexHandle::Split(IxNodeHandle *node) {
     //    需要初始化新节点的page_hdr内容
     // 2. 如果新的右兄弟结点是叶子结点，更新新旧节点的prev_leaf和next_leaf指针
     //    为新节点分配键值对，更新旧节点的键值对数记录
-    // 3. 如果新的右兄弟结点不是叶子结点，更新该结点的所有孩子结点的父节点信息(使用IxIndexHandle::maintain_child())
+    // 3.
+    // 如果新的右兄弟结点不是叶子结点，更新该结点的所有孩子结点的父节点信息(使用IxIndexHandle::maintain_child())
 
     return nullptr;
 }
@@ -115,8 +125,10 @@ bool IxIndexHandle::delete_entry(const char *key, Transaction *transaction) {
     // Todo:
     // 1. 获取该键值对所在的叶子结点
     // 2. 在该叶子结点中删除键值对
-    // 3. 如果删除成功需要调用CoalesceOrRedistribute来进行合并或重分配操作，并根据函数返回结果判断是否有结点需要删除
-    // 4. 如果需要并发，并且需要删除叶子结点，则需要在事务的delete_page_set中添加删除结点的对应页面；记得处理并发的上锁
+    // 3.
+    // 如果删除成功需要调用CoalesceOrRedistribute来进行合并或重分配操作，并根据函数返回结果判断是否有结点需要删除
+    // 4.
+    // 如果需要并发，并且需要删除叶子结点，则需要在事务的delete_page_set中添加删除结点的对应页面；记得处理并发的上锁
 
     return false;
 }
@@ -151,7 +163,8 @@ bool IxIndexHandle::CoalesceOrRedistribute(IxNodeHandle *node, Transaction *tran
  *
  * @param old_root_node 原根节点
  * @return bool 根结点是否需要被删除
- * @note size of root page can be less than min size and this method is only called within coalesceOrRedistribute()
+ * @note size of root page can be less than min size and this method is only called within
+ * coalesceOrRedistribute()
  */
 bool IxIndexHandle::AdjustRoot(IxNodeHandle *old_root_node) {
     // Todo:
@@ -164,8 +177,9 @@ bool IxIndexHandle::AdjustRoot(IxNodeHandle *old_root_node) {
 
 /**
  * @brief 重新分配node和兄弟结点neighbor_node的键值对
- * Redistribute key & value pairs from one page to its sibling page. If index == 0, move sibling page's first key
- * & value pair into end of input "node", otherwise move sibling page's last key & value pair into head of input "node".
+ * Redistribute key & value pairs from one page to its sibling page. If index == 0, move sibling page's first
+ * key & value pair into end of input "node", otherwise move sibling page's last key & value pair into head of
+ * input "node".
  *
  * @param neighbor_node sibling page of input "node"
  * @param node input from method coalesceOrRedistribute()
@@ -176,21 +190,21 @@ bool IxIndexHandle::AdjustRoot(IxNodeHandle *old_root_node) {
  * index>0，则neighbor是node前驱结点，表示：neighbor(left)  node(right)
  * 注意更新parent结点的相关kv对
  */
-void IxIndexHandle::Redistribute(IxNodeHandle *neighbor_node, IxNodeHandle *node, IxNodeHandle *parent, int index) {
+void IxIndexHandle::Redistribute(IxNodeHandle *neighbor_node, IxNodeHandle *node, IxNodeHandle *parent,
+                                 int index) {
     // Todo:
     // 1. 通过index判断neighbor_node是否为node的前驱结点
     // 2. 从neighbor_node中移动一个键值对到node结点中
     // 3. 更新父节点中的相关信息，并且修改移动键值对对应孩字结点的父结点信息（maintain_child函数）
     // 注意：neighbor_node的位置不同，需要移动的键值对不同，需要分类讨论
-
 }
 
 /**
  * @brief 合并(Coalesce)函数是将node和其直接前驱进行合并，也就是和它左边的neighbor_node进行合并；
  * 假设node一定在右边。如果上层传入的index=0，说明node在左边，那么交换node和neighbor_node，保证node在右边；合并到左结点，实际上就是删除了右结点；
- * Move all the key & value pairs from one page to its sibling page, and notify buffer pool manager to delete this page.
- * Parent page must be adjusted to take info of deletion into account. Remember to deal with coalesce or redistribute
- * recursively if necessary.
+ * Move all the key & value pairs from one page to its sibling page, and notify buffer pool manager to delete
+ * this page. Parent page must be adjusted to take info of deletion into account. Remember to deal with
+ * coalesce or redistribute recursively if necessary.
  *
  * @param neighbor_node sibling page of input "node" (neighbor_node是node的前结点)
  * @param node input from method coalesceOrRedistribute() (node结点是需要被删除的)
@@ -199,11 +213,13 @@ void IxIndexHandle::Redistribute(IxNodeHandle *neighbor_node, IxNodeHandle *node
  * @return true means parent node should be deleted, false means no deletion happend
  * @note Assume that *neighbor_node is the left sibling of *node (neighbor -> node)
  */
-bool IxIndexHandle::Coalesce(IxNodeHandle **neighbor_node, IxNodeHandle **node, IxNodeHandle **parent, int index,
-                             Transaction *transaction) {
+bool IxIndexHandle::Coalesce(IxNodeHandle **neighbor_node, IxNodeHandle **node, IxNodeHandle **parent,
+                             int index, Transaction *transaction) {
     // Todo:
-    // 1. 用index判断neighbor_node是否为node的前驱结点，若不是则交换两个结点，让neighbor_node作为左结点，node作为右结点
-    // 2. 把node结点的键值对移动到neighbor_node中，并更新node结点孩子结点的父节点信息（调用maintain_child函数）
+    // 1.
+    // 用index判断neighbor_node是否为node的前驱结点，若不是则交换两个结点，让neighbor_node作为左结点，node作为右结点
+    // 2.
+    // 把node结点的键值对移动到neighbor_node中，并更新node结点孩子结点的父节点信息（调用maintain_child函数）
     // 3. 释放和删除node结点，并删除parent中node结点的信息，返回parent是否需要被删除
     // 提示：如果是叶子结点且为最右叶子结点，需要更新file_hdr_.last_leaf
 
@@ -240,7 +256,8 @@ IxNodeHandle *IxIndexHandle::CreateNode() {
     PageId new_page_id = {.fd = fd_, .page_no = INVALID_PAGE_ID};
     // 从3开始分配page_no，第一次分配之后，new_page_id.page_no=3，file_hdr_.num_pages=4
     Page *page = buffer_pool_manager_->NewPage(&new_page_id);
-    // 注意，和Record的free_page定义不同，此处【不能】加上：file_hdr_.first_free_page_no = page->GetPageId().page_no
+    // 注意，和Record的free_page定义不同，此处【不能】加上：file_hdr_.first_free_page_no =
+    // page->GetPageId().page_no
     IxNodeHandle *node = new IxNodeHandle(&file_hdr_, page);
     return node;
 }
