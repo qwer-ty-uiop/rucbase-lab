@@ -34,7 +34,8 @@ IxNodeHandle* IxIndexHandle::FindLeafPage(const char* key,
     auto node_handle = FetchNode(file_hdr_.root_page);
     while (!node_handle->IsLeafPage()) {
         page_id_t page_id = node_handle->InternalLookup(key);
-        release_node_handle(*node_handle);
+        buffer_pool_manager_->UnpinPage(node_handle->GetPageId(), false);
+        delete node_handle;
         node_handle = FetchNode(page_id);
     }
     return node_handle;
@@ -58,10 +59,13 @@ bool IxIndexHandle::GetValue(const char* key,
     // 提示：使用完buffer_pool提供的page之后，记得unpin page；记得处理并发的上锁
     result->clear();
     auto node_handle = FindLeafPage(key, Operation::FIND, transaction);
-    Rid** rid;
+    Rid** rid = new Rid*;
     if (!node_handle->LeafLookup(key, rid))
         return false;
     result->push_back(**rid);
+    buffer_pool_manager_->UnpinPage(node_handle->GetPageId(), false);
+    delete rid;
+    delete node_handle;
     return true;
 }
 
