@@ -84,12 +84,6 @@ bool IxIndexHandle::insert_entry(const char* key,
     // page；若当前叶子节点是最右叶子节点，则需要更新file_hdr_.last_leaf；记得处理并发的上锁
     std::scoped_lock lock{root_latch_};
 
-    // test
-    std::vector<IxNodeHandle*> test(11);
-    for (int i = 2; i < *key; i++) {
-        test[i] = FetchNode(i);
-    }
-
     auto node = FindLeafPage(key, Operation::INSERT, transaction);
     int node_size = node->GetSize();
     int insert_success = (node_size != node->Insert(key, value));
