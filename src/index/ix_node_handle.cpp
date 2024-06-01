@@ -19,7 +19,7 @@ int IxNodeHandle::lower_bound(const char* target) const {
         int mid = (left + right) >> 1;
         // target大于keys[mid],用get_key获取mid位置的key
         if (ix_compare(target, get_key(mid), file_hdr->col_type,
-                       file_hdr->col_len)) {
+                       file_hdr->col_len) > 0) {
             left = mid + 1;
         } else {  // target小于等于keys[mid]
             right = mid - 1;
