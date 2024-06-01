@@ -184,6 +184,19 @@ void IxNodeHandle::erase_pair(int pos) {
     // 1. 删除该位置的key
     // 2. 删除该位置的rid
     // 3. 更新结点的键值对数量
+    if (pos < 0 || pos > page_hdr->num_key)
+        return;
+    // pos位置的key之后的所有key的长度之和
+    int remain = page_hdr->num_key - (pos + 1);
+    char* key_slot = get_key(pos);
+    int len = file_hdr->col_len;
+    // 覆盖pos位置的key
+    memmove(key_slot, key_slot + len, remain);
+
+    Rid* rid = get_rid(pos);
+    int len = sizeof(rid);
+    memmove(rid, rid + 1, len * remain);
+    page_hdr->num_key--;
 }
 
 /**
@@ -197,8 +210,14 @@ int IxNodeHandle::Remove(const char* key) {
     // 1. 查找要删除键值对的位置
     // 2. 如果要删除的键值对存在，删除键值对
     // 3. 返回完成删除操作后的键值对数量
-
-    return -1;
+    int key_index = lower_bound(key);
+    if (key_index == page_hdr->num_key ||
+        ix_compare(key, get_key(key_index), file_hdr->col_type,
+                   file_hdr->col_len) != 0) {
+        return 0;
+    }
+    erase_pair(key_index);
+    return page_hdr->num_key;
 }
 
 /**
