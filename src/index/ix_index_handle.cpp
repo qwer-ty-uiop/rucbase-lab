@@ -83,7 +83,6 @@ bool IxIndexHandle::insert_entry(const char* key,
     // 提示：记得unpin
     // page；若当前叶子节点是最右叶子节点，则需要更新file_hdr_.last_leaf；记得处理并发的上锁
     std::scoped_lock lock{root_latch_};
-
     auto node = FindLeafPage(key, Operation::INSERT, transaction);
     int node_size = node->GetSize();
     int insert_success = (node_size != node->Insert(key, value));
@@ -222,12 +221,12 @@ bool IxIndexHandle::delete_entry(const char* key, Transaction* transaction) {
 
     auto node = FindLeafPage(key, Operation::DELETE, transaction);
     int num = node->GetSize();
-    bool res = (num != node->Remove(key));
-    if (res) {
-        CoalesceOrRedistribute(node, transaction);
+    bool remove_success = (num != node->Remove(key));
+    if (remove_success) {
+        CoalesceOrRedistribute(node);
     }
-    buffer_pool_manager_->UnpinPage(node->GetPageId(), res);
-    return res;
+    buffer_pool_manager_->UnpinPage(node->GetPageId(), remove_success);
+    return remove_success;
 }
 
 /**
@@ -380,7 +379,8 @@ bool IxIndexHandle::Coalesce(IxNodeHandle** neighbor_node,
     // 提示：如果是叶子结点且为最右叶子结点，需要更新file_hdr_.last_leaf
     // 交换node和neighbor_node
     if (!index)
-        Coalesce(node, neighbor_node, parent, index + 1, transaction);
+        return Coalesce(node, neighbor_node, parent, index + 1, transaction);
+
     // 最右节点需要更新file_hdr_.last_leaf
     if ((*node)->IsLeafPage() && (*node)->GetPageNo() == file_hdr_.last_leaf) {
         file_hdr_.last_leaf = (*neighbor_node)->GetPageNo();

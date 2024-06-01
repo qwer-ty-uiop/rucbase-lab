@@ -34,9 +34,10 @@
 
 #include "storage/buffer_pool_manager.h"
 
-const std::string TEST_DB_NAME = "BPlusTreeDeleteTest_db";  // 以数据库名作为根目录
-const std::string TEST_FILE_NAME = "table1";                // 测试文件名的前缀
-const int index_no = 0;                                     // 索引编号
+const std::string TEST_DB_NAME =
+    "BPlusTreeDeleteTest_db";                 // 以数据库名作为根目录
+const std::string TEST_FILE_NAME = "table1";  // 测试文件名的前缀
+const int index_no = 0;                       // 索引编号
 // 创建的索引文件名为"table1.0.idx"（TEST_FILE_NAME + index_no + .idx）
 
 /** 注意：每个测试点只测试了单个文件！
@@ -58,8 +59,10 @@ class BPlusTreeTests : public ::testing::Test {
         ::testing::Test::SetUp();
         // For each test, we create a new IxManager
         disk_manager_ = std::make_unique<DiskManager>();
-        buffer_pool_manager_ = std::make_unique<BufferPoolManager>(100, disk_manager_.get());
-        ix_manager_ = std::make_unique<IxManager>(disk_manager_.get(), buffer_pool_manager_.get());
+        buffer_pool_manager_ =
+            std::make_unique<BufferPoolManager>(100, disk_manager_.get());
+        ix_manager_ = std::make_unique<IxManager>(disk_manager_.get(),
+                                                  buffer_pool_manager_.get());
         txn_ = std::make_unique<Transaction>(0);
 
         // 如果测试目录不存在，则先创建测试目录
@@ -76,7 +79,8 @@ class BPlusTreeTests : public ::testing::Test {
             ix_manager_->destroy_index(TEST_FILE_NAME, index_no);
         }
         // 创建测试文件
-        ix_manager_->create_index(TEST_FILE_NAME, index_no, TYPE_INT, sizeof(int));
+        ix_manager_->create_index(TEST_FILE_NAME, index_no, TYPE_INT,
+                                  sizeof(int));
         assert(ix_manager_->exists(TEST_FILE_NAME, index_no));
         // 打开测试文件
         ih_ = ix_manager_->open_index(TEST_FILE_NAME, index_no);
@@ -95,21 +99,27 @@ class BPlusTreeTests : public ::testing::Test {
         assert(disk_manager_->is_dir(TEST_DB_NAME));
     };
 
-    void ToGraph(const IxIndexHandle *ih, IxNodeHandle *node, BufferPoolManager *bpm, std::ofstream &out) const {
+    void ToGraph(const IxIndexHandle* ih,
+                 IxNodeHandle* node,
+                 BufferPoolManager* bpm,
+                 std::ofstream& out) const {
         std::string leaf_prefix("LEAF_");
         std::string internal_prefix("INT_");
         if (node->IsLeafPage()) {
-            IxNodeHandle *leaf = node;
+            IxNodeHandle* leaf = node;
             // Print node name
             out << leaf_prefix << leaf->GetPageNo();
             // Print node properties
             out << "[shape=plain color=green ";
             // Print data of the node
-            out << "label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"4\">\n";
+            out << "label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" "
+                   "CELLSPACING=\"0\" CELLPADDING=\"4\">\n";
             // Print data
-            out << "<TR><TD COLSPAN=\"" << leaf->GetSize() << "\">page_no=" << leaf->GetPageNo() << "</TD></TR>\n";
+            out << "<TR><TD COLSPAN=\"" << leaf->GetSize()
+                << "\">page_no=" << leaf->GetPageNo() << "</TD></TR>\n";
             out << "<TR><TD COLSPAN=\"" << leaf->GetSize() << "\">"
-                << "max_size=" << leaf->GetMaxSize() << ",min_size=" << leaf->GetMinSize() << "</TD></TR>\n";
+                << "max_size=" << leaf->GetMaxSize()
+                << ",min_size=" << leaf->GetMinSize() << "</TD></TR>\n";
             out << "<TR>";
             for (int i = 0; i < leaf->GetSize(); i++) {
                 out << "<TD>" << leaf->KeyAt(i) << "</TD>\n";
@@ -118,30 +128,36 @@ class BPlusTreeTests : public ::testing::Test {
             // Print table end
             out << "</TABLE>>];\n";
             // Print Leaf node link if there is a next page
-            if (leaf->GetNextLeaf() != INVALID_PAGE_ID && leaf->GetNextLeaf() > 1) {
+            if (leaf->GetNextLeaf() != INVALID_PAGE_ID &&
+                leaf->GetNextLeaf() > 1) {
                 // 注意加上一个大于1的判断条件，否则若GetNextPageNo()是1，会把1那个结点也画出来
-                out << leaf_prefix << leaf->GetPageNo() << " -> " << leaf_prefix << leaf->GetNextLeaf() << ";\n";
-                out << "{rank=same " << leaf_prefix << leaf->GetPageNo() << " " << leaf_prefix << leaf->GetNextLeaf()
-                    << "};\n";
+                out << leaf_prefix << leaf->GetPageNo() << " -> " << leaf_prefix
+                    << leaf->GetNextLeaf() << ";\n";
+                out << "{rank=same " << leaf_prefix << leaf->GetPageNo() << " "
+                    << leaf_prefix << leaf->GetNextLeaf() << "};\n";
             }
 
             // Print parent links if there is a parent
             if (leaf->GetParentPageNo() != INVALID_PAGE_ID) {
-                out << internal_prefix << leaf->GetParentPageNo() << ":p" << leaf->GetPageNo() << " -> " << leaf_prefix
+                out << internal_prefix << leaf->GetParentPageNo() << ":p"
+                    << leaf->GetPageNo() << " -> " << leaf_prefix
                     << leaf->GetPageNo() << ";\n";
             }
         } else {
-            IxNodeHandle *inner = node;
+            IxNodeHandle* inner = node;
             // Print node name
             out << internal_prefix << inner->GetPageNo();
             // Print node properties
             out << "[shape=plain color=pink ";  // why not?
             // Print data of the node
-            out << "label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"4\">\n";
+            out << "label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" "
+                   "CELLSPACING=\"0\" CELLPADDING=\"4\">\n";
             // Print data
-            out << "<TR><TD COLSPAN=\"" << inner->GetSize() << "\">page_no=" << inner->GetPageNo() << "</TD></TR>\n";
+            out << "<TR><TD COLSPAN=\"" << inner->GetSize()
+                << "\">page_no=" << inner->GetPageNo() << "</TD></TR>\n";
             out << "<TR><TD COLSPAN=\"" << inner->GetSize() << "\">"
-                << "max_size=" << inner->GetMaxSize() << ",min_size=" << inner->GetMinSize() << "</TD></TR>\n";
+                << "max_size=" << inner->GetMaxSize()
+                << ",min_size=" << inner->GetMinSize() << "</TD></TR>\n";
             out << "<TR>";
             for (int i = 0; i < inner->GetSize(); i++) {
                 out << "<TD PORT=\"p" << inner->ValueAt(i) << "\">";
@@ -157,18 +173,23 @@ class BPlusTreeTests : public ::testing::Test {
             out << "</TABLE>>];\n";
             // Print Parent link
             if (inner->GetParentPageNo() != INVALID_PAGE_ID) {
-                out << internal_prefix << inner->GetParentPageNo() << ":p" << inner->GetPageNo() << " -> "
-                    << internal_prefix << inner->GetPageNo() << ";\n";
+                out << internal_prefix << inner->GetParentPageNo() << ":p"
+                    << inner->GetPageNo() << " -> " << internal_prefix
+                    << inner->GetPageNo() << ";\n";
             }
             // Print leaves
             for (int i = 0; i < inner->GetSize(); i++) {
-                IxNodeHandle *child_node = ih->FetchNode(inner->ValueAt(i));
+                IxNodeHandle* child_node = ih->FetchNode(inner->ValueAt(i));
                 ToGraph(ih, child_node, bpm, out);  // 继续递归
                 if (i > 0) {
-                    IxNodeHandle *sibling_node = ih->FetchNode(inner->ValueAt(i - 1));
-                    if (!sibling_node->IsLeafPage() && !child_node->IsLeafPage()) {
-                        out << "{rank=same " << internal_prefix << sibling_node->GetPageNo() << " " << internal_prefix
-                            << child_node->GetPageNo() << "};\n";
+                    IxNodeHandle* sibling_node =
+                        ih->FetchNode(inner->ValueAt(i - 1));
+                    if (!sibling_node->IsLeafPage() &&
+                        !child_node->IsLeafPage()) {
+                        out << "{rank=same " << internal_prefix
+                            << sibling_node->GetPageNo() << " "
+                            << internal_prefix << child_node->GetPageNo()
+                            << "};\n";
                     }
                     bpm->UnpinPage(sibling_node->GetPageId(), false);
                 }
@@ -183,10 +204,10 @@ class BPlusTreeTests : public ::testing::Test {
      * @param bpm 缓冲池
      * @param outf dot文件名
      */
-    void Draw(BufferPoolManager *bpm, const std::string &outf) {
+    void Draw(BufferPoolManager* bpm, const std::string& outf) {
         std::ofstream out(outf);
         out << "digraph G {" << std::endl;
-        IxNodeHandle *node = ih_->FetchNode(ih_->file_hdr_.root_page);
+        IxNodeHandle* node = ih_->FetchNode(ih_->file_hdr_.root_page);
         ToGraph(ih_.get(), node, bpm, out);
         out << "}" << std::endl;
         out.close();
@@ -198,7 +219,8 @@ class BPlusTreeTests : public ::testing::Test {
         std::string cmd = "dot -Tpng " + outf + " -o " + png_name;
         system(cmd.c_str());
 
-        // printf("Generate picture: build/%s/%s\n", TEST_DB_NAME.c_str(), png_name.c_str());
+        // printf("Generate picture: build/%s/%s\n", TEST_DB_NAME.c_str(),
+        // png_name.c_str());
         printf("Generate picture: %s\n", png_name.c_str());
     }
 
@@ -209,13 +231,13 @@ class BPlusTreeTests : public ::testing::Test {
      *
      * @param ih
      */
-    void check_leaf(const IxIndexHandle *ih) {
+    void check_leaf(const IxIndexHandle* ih) {
         // check leaf list
         page_id_t leaf_no = ih->file_hdr_.first_leaf;
         while (leaf_no != IX_LEAF_HEADER_PAGE) {
-            IxNodeHandle *curr = ih->FetchNode(leaf_no);
-            IxNodeHandle *prev = ih->FetchNode(curr->GetPrevLeaf());
-            IxNodeHandle *next = ih->FetchNode(curr->GetNextLeaf());
+            IxNodeHandle* curr = ih->FetchNode(leaf_no);
+            IxNodeHandle* prev = ih->FetchNode(curr->GetPrevLeaf());
+            IxNodeHandle* next = ih->FetchNode(curr->GetNextLeaf());
             // Ensure prev->next == curr && next->prev == curr
             ASSERT_EQ(prev->GetNextLeaf(), leaf_no);
             ASSERT_EQ(next->GetPrevLeaf(), leaf_no);
@@ -232,14 +254,14 @@ class BPlusTreeTests : public ::testing::Test {
      * @param ih 树
      * @param now_page_no 当前遍历到的结点
      */
-    void check_tree(const IxIndexHandle *ih, int now_page_no) {
-        IxNodeHandle *node = ih->FetchNode(now_page_no);
+    void check_tree(const IxIndexHandle* ih, int now_page_no) {
+        IxNodeHandle* node = ih->FetchNode(now_page_no);
         if (node->IsLeafPage()) {
             buffer_pool_manager_->UnpinPage(node->GetPageId(), false);
             return;
         }
-        for (int i = 0; i < node->GetSize(); i++) {                 // 遍历node的所有孩子
-            IxNodeHandle *child = ih->FetchNode(node->ValueAt(i));  // 第i个孩子
+        for (int i = 0; i < node->GetSize(); i++) {  // 遍历node的所有孩子
+            IxNodeHandle* child = ih->FetchNode(node->ValueAt(i));  // 第i个孩子
             // check parent
             assert(child->GetParentPageNo() == now_page_no);
             // check first key
@@ -252,7 +274,9 @@ class BPlusTreeTests : public ::testing::Test {
             }
             if (i + 1 < node->GetSize()) {
                 // 满足制约大小关系
-                ASSERT_LT(child_last_key, node->KeyAt(i + 1));  // child_last_key < node->KeyAt(i + 1)
+                ASSERT_LT(
+                    child_last_key,
+                    node->KeyAt(i + 1));  // child_last_key < node->KeyAt(i + 1)
             }
 
             buffer_pool_manager_->UnpinPage(child->GetPageId(), false);
@@ -268,25 +292,27 @@ class BPlusTreeTests : public ::testing::Test {
      * @param ih
      * @param mock 函数外部记录插入/删除后的(key,rid)
      */
-    void check_all(IxIndexHandle *ih, const std::multimap<int, Rid> &mock) {
+    void check_all(IxIndexHandle* ih, const std::multimap<int, Rid>& mock) {
         check_tree(ih, ih->file_hdr_.root_page);
         if (!ih->IsEmpty()) {
             check_leaf(ih);
         }
 
-        for (auto &entry : mock) {
+        for (auto& entry : mock) {
             int mock_key = entry.first;
             // test lower bound
             {
-                auto mock_lower = mock.lower_bound(mock_key);        // multimap的lower_bound方法
-                Iid iid = ih->lower_bound((const char *)&mock_key);  // IxIndexHandle的lower_bound方法
+                auto mock_lower =
+                    mock.lower_bound(mock_key);  // multimap的lower_bound方法
+                Iid iid = ih->lower_bound(
+                    (const char*)&mock_key);  // IxIndexHandle的lower_bound方法
                 Rid rid = ih->get_rid(iid);
                 ASSERT_EQ(rid, mock_lower->second);
             }
             // test upper bound
             {
                 auto mock_upper = mock.upper_bound(mock_key);
-                Iid iid = ih->upper_bound((const char *)&mock_key);
+                Iid iid = ih->upper_bound((const char*)&mock_key);
                 if (iid != ih->leaf_end()) {
                     Rid rid = ih->get_rid(iid);
                     ASSERT_EQ(rid, mock_upper->second);
@@ -295,7 +321,8 @@ class BPlusTreeTests : public ::testing::Test {
         }
 
         // test scan
-        IxScan scan(ih, ih->leaf_begin(), ih->leaf_end(), buffer_pool_manager_.get());
+        IxScan scan(ih, ih->leaf_begin(), ih->leaf_end(),
+                    buffer_pool_manager_.get());
         auto it = mock.begin();
         int leaf_no = ih->file_hdr_.first_leaf;
         assert(leaf_no == scan.iid().page_no);
@@ -315,12 +342,13 @@ class BPlusTreeTests : public ::testing::Test {
 
 /**
  * @brief insert 1~10 and delete 1~9 (will draw pictures)
- * 
+ *
  * @note lab2 计分：10 points
  */
 TEST_F(BPlusTreeTests, InsertAndDeleteTest1) {
     const int64_t scale = 10;
-    const int64_t delete_scale = 9;  // 删除的个数最好小于scale，等于的话会变成空树
+    const int64_t delete_scale =
+        9;  // 删除的个数最好小于scale，等于的话会变成空树
     const int order = 4;
 
     assert(order > 2 && order <= ih_->file_hdr_.btree_order);
@@ -332,22 +360,26 @@ TEST_F(BPlusTreeTests, InsertAndDeleteTest1) {
     }
 
     // insert keys
-    const char *index_key;
+    const char* index_key;
     for (auto key : keys) {
         int32_t value = key & 0xFFFFFFFF;  // key的低32位
-        Rid rid = {.page_no = static_cast<int32_t>(key >> 32),
-                   .slot_no = value};  // page_id = (key>>32), slot_num = (key & 0xFFFFFFFF)
-        index_key = (const char *)&key;
-        bool insert_ret = ih_->insert_entry(index_key, rid, txn_.get());  // 调用Insert
+        Rid rid = {
+            .page_no = static_cast<int32_t>(key >> 32),
+            .slot_no =
+                value};  // page_id = (key>>32), slot_num = (key & 0xFFFFFFFF)
+        index_key = (const char*)&key;
+        bool insert_ret =
+            ih_->insert_entry(index_key, rid, txn_.get());  // 调用Insert
         ASSERT_EQ(insert_ret, true);
+        Draw(buffer_pool_manager_.get(),
+             "insert" + std::to_string(key) + ".dot");
     }
-    Draw(buffer_pool_manager_.get(), "insert10.dot");
 
     // scan keys by GetValue()
     std::vector<Rid> rids;
     for (auto key : keys) {
         rids.clear();
-        index_key = (const char *)&key;
+        index_key = (const char*)&key;
         ih_->GetValue(index_key, &rids, txn_.get());  // 调用GetValue
         EXPECT_EQ(rids.size(), 1);
 
@@ -361,11 +393,13 @@ TEST_F(BPlusTreeTests, InsertAndDeleteTest1) {
         delete_keys.push_back(key);
     }
     for (auto key : delete_keys) {
-        index_key = (const char *)&key;
-        bool delete_ret = ih_->delete_entry(index_key, txn_.get());  // 调用Delete
+        index_key = (const char*)&key;
+        bool delete_ret =
+            ih_->delete_entry(index_key, txn_.get());  // 调用Delete
         ASSERT_EQ(delete_ret, true);
 
-        Draw(buffer_pool_manager_.get(), "InsertAndDeleteTest1_delete" + std::to_string(key) + ".dot");
+        Draw(buffer_pool_manager_.get(),
+             "InsertAndDeleteTest1_delete" + std::to_string(key) + ".dot");
     }
 
     // scan keys by Ixscan
@@ -373,7 +407,8 @@ TEST_F(BPlusTreeTests, InsertAndDeleteTest1) {
     int64_t current_key = start_key;
     int64_t size = 0;
 
-    IxScan scan(ih_.get(), ih_->leaf_begin(), ih_->leaf_end(), buffer_pool_manager_.get());
+    IxScan scan(ih_.get(), ih_->leaf_begin(), ih_->leaf_end(),
+                buffer_pool_manager_.get());
     while (!scan.is_end()) {
         auto rid = scan.rid();
         EXPECT_EQ(rid.page_no, 0);
@@ -403,13 +438,16 @@ TEST_F(BPlusTreeTests, InsertAndDeleteTest2) {
     }
 
     // insert keys
-    const char *index_key;
+    const char* index_key;
     for (auto key : keys) {
         int32_t value = key & 0xFFFFFFFF;  // key的低32位
-        Rid rid = {.page_no = static_cast<int32_t>(key >> 32),
-                   .slot_no = value};  // page_id = (key>>32), slot_num = (key & 0xFFFFFFFF)
-        index_key = (const char *)&key;
-        bool insert_ret = ih_->insert_entry(index_key, rid, txn_.get());  // 调用Insert
+        Rid rid = {
+            .page_no = static_cast<int32_t>(key >> 32),
+            .slot_no =
+                value};  // page_id = (key>>32), slot_num = (key & 0xFFFFFFFF)
+        index_key = (const char*)&key;
+        bool insert_ret =
+            ih_->insert_entry(index_key, rid, txn_.get());  // 调用Insert
         ASSERT_EQ(insert_ret, true);
     }
     Draw(buffer_pool_manager_.get(), "insert10.dot");
@@ -418,7 +456,7 @@ TEST_F(BPlusTreeTests, InsertAndDeleteTest2) {
     std::vector<Rid> rids;
     for (auto key : keys) {
         rids.clear();
-        index_key = (const char *)&key;
+        index_key = (const char*)&key;
         ih_->GetValue(index_key, &rids, txn_.get());  // 调用GetValue
         EXPECT_EQ(rids.size(), 1);
 
@@ -429,17 +467,19 @@ TEST_F(BPlusTreeTests, InsertAndDeleteTest2) {
     // delete keys
     std::vector<int64_t> delete_keys = {1, 2, 3, 4, 7, 5};
     for (auto key : delete_keys) {
-        index_key = (const char *)&key;
-        bool delete_ret = ih_->delete_entry(index_key, txn_.get());  // 调用Delete
+        index_key = (const char*)&key;
+        bool delete_ret =
+            ih_->delete_entry(index_key, txn_.get());  // 调用Delete
         ASSERT_EQ(delete_ret, true);
 
-        Draw(buffer_pool_manager_.get(), "InsertAndDeleteTest2_delete" + std::to_string(key) + ".dot");
+        Draw(buffer_pool_manager_.get(),
+             "InsertAndDeleteTest2_delete" + std::to_string(key) + ".dot");
     }
 }
 
 /**
  * @brief 随机插入和删除多个键值对
- * 
+ *
  * @note lab2 计分：20 points
  */
 TEST_F(BPlusTreeTests, LargeScaleTest) {
@@ -464,12 +504,14 @@ TEST_F(BPlusTreeTests, LargeScaleTest) {
                 continue;
             }
             Rid rand_val = {.page_no = rand(), .slot_no = rand()};
-            bool insert_ret = ih_->insert_entry((const char *)&rand_key, rand_val, txn_.get());  // 调用Insert
+            bool insert_ret = ih_->insert_entry(
+                (const char*)&rand_key, rand_val, txn_.get());  // 调用Insert
             ASSERT_EQ(insert_ret, true);
             mock.insert(std::make_pair(rand_key, rand_val));
             add_cnt++;
             // Draw(buffer_pool_manager_.get(),
-            //      "MixTest2_" + std::to_string(num) + "_insert" + std::to_string(rand_key) + ".dot");
+            //      "MixTest2_" + std::to_string(num) + "_insert" +
+            //      std::to_string(rand_key) + ".dot");
         } else {
             // Delete
             if (mock.size() == 1) {  // 只剩最后一个结点时不删除，以防变成空树
@@ -482,15 +524,17 @@ TEST_F(BPlusTreeTests, LargeScaleTest) {
             }
             int key = it->first;
             // printf("delete rand key=%d\n", key);
-            bool delete_ret = ih_->delete_entry((const char *)&key, txn_.get());
+            bool delete_ret = ih_->delete_entry((const char*)&key, txn_.get());
             ASSERT_EQ(delete_ret, true);
             mock.erase(it);
             del_cnt++;
             // Draw(buffer_pool_manager_.get(),
-            //      "MixTest2_" + std::to_string(num) + "_delete" + std::to_string(key) + ".dot");
+            //      "MixTest2_" + std::to_string(num) + "_delete" +
+            //      std::to_string(key) + ".dot");
         }
         // check_all(ih_.get(), mock);
     }
-    std::cout << "Insert keys count: " << add_cnt << '\n' << "Delete keys count: " << del_cnt << '\n';
+    std::cout << "Insert keys count: " << add_cnt << '\n'
+              << "Delete keys count: " << del_cnt << '\n';
     check_all(ih_.get(), mock);
 }
