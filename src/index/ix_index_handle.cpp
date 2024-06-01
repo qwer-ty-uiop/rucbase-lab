@@ -56,12 +56,12 @@ bool IxIndexHandle::GetValue(const char* key,
     // 2. 在叶子节点中查找目标key值的位置，并读取key对应的rid
     // 3. 把rid存入result参数中
     // 提示：使用完buffer_pool提供的page之后，记得unpin page；记得处理并发的上锁
-    result->clear();
+    std::scoped_lock lock{root_latch_};
     auto node_handle = FindLeafPage(key, Operation::FIND, transaction);
-    Rid** rid;
-    if (!node_handle->LeafLookup(key, rid))
+    Rid* rid;
+    if (!node_handle->LeafLookup(key, &rid))
         return false;
-    result->push_back(**rid);
+    result->emplace_back(*rid);
     buffer_pool_manager_->UnpinPage(node_handle->GetPageId(), false);
     return true;
 }
@@ -82,20 +82,21 @@ bool IxIndexHandle::insert_entry(const char* key,
     // 3. 如果结点已满，分裂结点，并把新结点的相关信息插入父节点
     // 提示：记得unpin
     // page；若当前叶子节点是最右叶子节点，则需要更新file_hdr_.last_leaf；记得处理并发的上锁
+    std::scoped_lock lock{root_latch_};
     auto node = FindLeafPage(key, Operation::INSERT, transaction);
-    int node_size = node->Insert(key, value);
-    maintain_parent(node);
+    int node_size = node->GetSize();
+    int insert_success = node_size != node->Insert(key, value);
     // 节点已满
-    if (node_size > file_hdr_.btree_order) {
+    if (insert_success && node->GetSize() > node->GetMaxSize()) {
         auto new_node = Split(node);
-        if (node->GetPageId().page_no == file_hdr_.last_leaf) {
-            file_hdr_.last_leaf = new_node->GetPageId().page_no;
+        if (node->GetPageNo() == file_hdr_.last_leaf) {
+            file_hdr_.last_leaf = new_node->GetPageNo();
         }
         // 插入父节点，如果也满则递归执行
         InsertIntoParent(node, new_node->get_key(0), new_node, transaction);
         buffer_pool_manager_->UnpinPage(new_node->GetPageId(), true);
     }
-    buffer_pool_manager_->UnpinPage(node->GetPageId(), true);
+    buffer_pool_manager_->UnpinPage(node->GetPageId(), insert_success);
     return true;
 }
 

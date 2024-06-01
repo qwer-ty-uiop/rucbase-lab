@@ -123,24 +123,17 @@ void IxNodeHandle::insert_pairs(int pos,
     if (pos < 0 || pos > GetSize()) {
         throw InternalError("Invalid insert pos");
     }
-    // 位置不够插入n个key
-    if (GetSize() + n > GetMaxSize()) {
-        throw InternalError("Invalid insert pos");
-    }
-    // 将pos及其之后的n个位置空出来，为插入留空间
-    for (int i = page_hdr->num_key - 1; i >= pos; i--) {
-        set_key(i + n, get_key(i));
-    }
-    for (int i = 0; i < n; i++) {
-        set_key(i + pos, key + file_hdr->col_len * i);
-    }
-    // 处理rid
-    for (int i = page_hdr->num_key - 1; i >= pos; i--) {
-        set_rid(i + n, *get_rid(i));
-    }
-    for (int i = 0; i < n; i++) {
-        set_rid(i + pos, rid[i]);
-    }
+    int remain = GetSize() - pos;
+
+    char* key_slot = get_key(pos);
+    int len = file_hdr->col_len;
+    memmove(key_slot + n * file_hdr->col_len, key_slot, remain * len);
+    memcpy(key_slot, key, n * len);
+
+    Rid* rid_slot = get_rid(pos);
+    len = sizeof(Rid);
+    memmove(rid_slot + n, rid_slot, remain * len);
+    memcpy(rid_slot, rid, n * len);
     page_hdr->num_key += n;
 }
 
@@ -184,7 +177,7 @@ void IxNodeHandle::erase_pair(int pos) {
     // 1. 删除该位置的key
     // 2. 删除该位置的rid
     // 3. 更新结点的键值对数量
-    if (pos < 0 || pos > page_hdr->num_key)
+    if (pos < 0 || pos > GetSize())
         return;
     // pos位置的key之后的所有key的长度之和
     int remain = page_hdr->num_key - (pos + 1);
