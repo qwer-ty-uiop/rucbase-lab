@@ -184,10 +184,10 @@ void IxNodeHandle::erase_pair(int pos) {
     char* key_slot = get_key(pos);
     int len = file_hdr->col_len;
     // 覆盖pos位置的key
-    memmove(key_slot, key_slot + len, remain);
+    memmove(key_slot, key_slot + len, len * remain);
 
     Rid* rid = get_rid(pos);
-    len = sizeof(rid);
+    len = sizeof(Rid);
     memmove(rid, rid + 1, len * remain);
     page_hdr->num_key--;
 }

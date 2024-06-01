@@ -87,7 +87,7 @@ bool IxIndexHandle::insert_entry(const char* key,
     int node_size = node->GetSize();
     int insert_success = node_size != node->Insert(key, value);
     // 节点已满
-    if (insert_success && node->GetSize() > node->GetMaxSize()) {
+    if (insert_success && node->GetSize() == node->GetMaxSize()) {
         auto new_node = Split(node);
         if (node->GetPageNo() == file_hdr_.last_leaf) {
             file_hdr_.last_leaf = new_node->GetPageNo();
@@ -117,24 +117,27 @@ IxNodeHandle* IxIndexHandle::Split(IxNodeHandle* node) {
     // 3.
     // 如果新的右兄弟结点不是叶子结点，更新该结点的所有孩子结点的父节点信息(使用IxIndexHandle::maintain_child())
     auto new_node = CreateNode();
-    // 第一步
+    // 将原结点的键值对平均分配，右半部分分裂为新的右兄弟结点
+    //    需要初始化新节点的page_hdr内容
     int pos = node->page_hdr->num_key >> 1;
     new_node->page_hdr->is_leaf = node->IsLeafPage();
     new_node->page_hdr->parent = node->GetParentPageNo();
     new_node->page_hdr->next_free_page_no = node->page_hdr->next_free_page_no;
     new_node->insert_pairs(0, node->get_key(pos), node->get_rid(pos),
-                           node->page_hdr->num_key - pos);
-    // 第二步
+                           node->GetSize() - pos);
+    node->SetSize(pos);
+    // 如果新的右兄弟结点是叶子结点，更新新旧节点的prev_leaf和next_leaf指针
+    //    为新节点分配键值对，更新旧节点的键值对数记录
     if (new_node->page_hdr->is_leaf) {
         new_node->SetNextLeaf(node->GetNextLeaf());
         new_node->SetPrevLeaf((node->GetPageNo()));
 
-        auto next_leaf = FetchNode(new_node->page_hdr->next_leaf);
+        auto next_leaf = FetchNode(new_node->GetNextLeaf());
         next_leaf->SetPrevLeaf((node->GetPageNo()));
         buffer_pool_manager_->UnpinPage(next_leaf->GetPageId(), true);
 
         node->SetNextLeaf(new_node->GetPageNo());
-    } else {  // 第三步
+    } else {  // 如果新的右兄弟结点不是叶子结点，更新该结点的所有孩子结点的父节点信息(使用IxIndexHandle::maintain_child())
         for (int i = 0; i < new_node->GetSize(); i++) {
             maintain_child(new_node, i);
         }
