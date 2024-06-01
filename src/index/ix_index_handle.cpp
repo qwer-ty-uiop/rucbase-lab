@@ -33,9 +33,9 @@ IxNodeHandle* IxIndexHandle::FindLeafPage(const char* key,
     // 3. 找到包含该key值的叶子结点停止查找，并返回叶子节点
     auto node_handle = FetchNode(file_hdr_.root_page);
     while (!node_handle->IsLeafPage()) {
-        page_id_t page_id = node_handle->InternalLookup(key);
+        page_id_t page_no = node_handle->InternalLookup(key);
         buffer_pool_manager_->UnpinPage(node_handle->GetPageId(), false);
-        node_handle = FetchNode(page_id);
+        node_handle = FetchNode(page_no);
     }
     return node_handle;
 }
@@ -97,6 +97,9 @@ bool IxIndexHandle::insert_entry(const char* key,
         buffer_pool_manager_->UnpinPage(new_node->GetPageId(), true);
     }
     buffer_pool_manager_->UnpinPage(node->GetPageId(), insert_success);
+    // test
+    // auto root = FetchNode(file_hdr_.root_page);
+    // auto root_right = FetchNode(7);
     return true;
 }
 
@@ -119,7 +122,7 @@ IxNodeHandle* IxIndexHandle::Split(IxNodeHandle* node) {
     auto new_node = CreateNode();
     // 将原结点的键值对平均分配，右半部分分裂为新的右兄弟结点
     //    需要初始化新节点的page_hdr内容
-    int pos = node->page_hdr->num_key >> 1;
+    int pos = node->GetSize() >> 1;
     new_node->page_hdr->is_leaf = node->IsLeafPage();
     new_node->page_hdr->parent = node->GetParentPageNo();
     new_node->page_hdr->next_free_page_no = node->page_hdr->next_free_page_no;
@@ -128,12 +131,12 @@ IxNodeHandle* IxIndexHandle::Split(IxNodeHandle* node) {
     node->SetSize(pos);
     // 如果新的右兄弟结点是叶子结点，更新新旧节点的prev_leaf和next_leaf指针
     //    为新节点分配键值对，更新旧节点的键值对数记录
-    if (new_node->page_hdr->is_leaf) {
+    if (new_node->IsLeafPage()) {
         new_node->SetNextLeaf(node->GetNextLeaf());
         new_node->SetPrevLeaf((node->GetPageNo()));
 
         auto next_leaf = FetchNode(new_node->GetNextLeaf());
-        next_leaf->SetPrevLeaf((node->GetPageNo()));
+        next_leaf->SetPrevLeaf((new_node->GetPageNo()));
         buffer_pool_manager_->UnpinPage(next_leaf->GetPageId(), true);
 
         node->SetNextLeaf(new_node->GetPageNo());

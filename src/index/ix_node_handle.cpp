@@ -87,10 +87,10 @@ page_id_t IxNodeHandle::InternalLookup(const char* key) {
     // 1. 查找当前非叶子节点中目标key所在孩子节点（子树）的位置
     // 2. 获取该孩子节点（子树）所在页面的编号
     // 3. 返回页面编号
-    // key左边的value都是小于key的，所以用upper_bound找第一个大于target的key，其左边就是target所在页
+    // key左边的value都是小于key的，所以用upper_bound找第一个大于target的key，其左边就是target所在
     int index = upper_bound(key);
     // 获取目标页
-    Rid* target_node = get_rid(index);
+    Rid* target_node = get_rid(index - 1);
     // 返回页编号
     return target_node->page_no;
 }
