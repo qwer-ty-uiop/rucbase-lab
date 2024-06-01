@@ -87,7 +87,7 @@ page_id_t IxNodeHandle::InternalLookup(const char* key) {
     // 1. 查找当前非叶子节点中目标key所在孩子节点（子树）的位置
     // 2. 获取该孩子节点（子树）所在页面的编号
     // 3. 返回页面编号
-    // key左边的value都是小于key的，所以用upper_bound找第一个大于target的key，其左边就是target所在
+    // key左边的value都是小于key的，所以用upper_bound找第一个大于target的key，其左边就是target所在页
     int index = upper_bound(key);
     // 获取目标页
     Rid* target_node = get_rid(index - 1);
@@ -123,17 +123,25 @@ void IxNodeHandle::insert_pairs(int pos,
     if (pos < 0 || pos > GetSize()) {
         throw InternalError("Invalid insert pos");
     }
-    int remain = GetSize() - pos;
+    char* move_key;
+    for (int i = page_hdr->num_key - 1; i >= pos; i--) {
+        move_key = get_key(i);
+        set_key(i + n, move_key);
+    }
+    for (int i = n - 1; i >= 0; i--) {
+        set_key(i + pos, key + i * file_hdr->col_len);
+    }
 
-    char* key_slot = get_key(pos);
-    int len = file_hdr->col_len;
-    memmove(key_slot + n * file_hdr->col_len, key_slot, remain * len);
-    memcpy(key_slot, key, n * len);
+    Rid move_rid;
+    for (int i = page_hdr->num_key - 1; i >= pos; i--) {
+        move_rid = *get_rid(i);
+        set_rid(i + n, move_rid);
+    }
+    for (int i = n - 1; i >= 0; i--) {
+        move_rid = rid[i];
+        set_rid(i + pos, move_rid);
+    }
 
-    Rid* rid_slot = get_rid(pos);
-    len = sizeof(Rid);
-    memmove(rid_slot + n, rid_slot, remain * len);
-    memcpy(rid_slot, rid, n * len);
     page_hdr->num_key += n;
 }
 

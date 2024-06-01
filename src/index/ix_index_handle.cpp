@@ -83,9 +83,16 @@ bool IxIndexHandle::insert_entry(const char* key,
     // 提示：记得unpin
     // page；若当前叶子节点是最右叶子节点，则需要更新file_hdr_.last_leaf；记得处理并发的上锁
     std::scoped_lock lock{root_latch_};
+
+    // test
+    std::vector<IxNodeHandle*> test(11);
+    for (int i = 2; i < *key; i++) {
+        test[i] = FetchNode(i);
+    }
+
     auto node = FindLeafPage(key, Operation::INSERT, transaction);
     int node_size = node->GetSize();
-    int insert_success = node_size != node->Insert(key, value);
+    int insert_success = (node_size != node->Insert(key, value));
     // 节点已满
     if (insert_success && node->GetSize() == node->GetMaxSize()) {
         auto new_node = Split(node);
@@ -97,9 +104,6 @@ bool IxIndexHandle::insert_entry(const char* key,
         buffer_pool_manager_->UnpinPage(new_node->GetPageId(), true);
     }
     buffer_pool_manager_->UnpinPage(node->GetPageId(), insert_success);
-    // test
-    // auto root = FetchNode(file_hdr_.root_page);
-    // auto root_right = FetchNode(7);
     return true;
 }
 
@@ -190,6 +194,7 @@ void IxIndexHandle::InsertIntoParent(IxNodeHandle* old_node,
         new_node->page_hdr->parent = old_node->page_hdr->parent =
             new_root->GetPageNo();
         file_hdr_.root_page = new_root->GetPageNo();
+        buffer_pool_manager_->UnpinPage(new_root->GetPageId(), true);
     } else {
         auto parent = FetchNode(old_node->GetParentPageNo());
         int pos = parent->find_child(old_node);
@@ -198,7 +203,9 @@ void IxIndexHandle::InsertIntoParent(IxNodeHandle* old_node,
             auto new_parent_node = Split(parent);
             InsertIntoParent(parent, new_parent_node->get_key(0),
                              new_parent_node, transaction);
+            buffer_pool_manager_->UnpinPage(new_parent_node->GetPageId(), true);
         }
+        buffer_pool_manager_->UnpinPage(parent->GetPageId(), true);
     }
 }
 
