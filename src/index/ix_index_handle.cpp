@@ -56,7 +56,7 @@ bool IxIndexHandle::GetValue(const char* key,
     // 2. 在叶子节点中查找目标key值的位置，并读取key对应的rid
     // 3. 把rid存入result参数中
     // 提示：使用完buffer_pool提供的page之后，记得unpin page；记得处理并发的上锁
-    std::scoped_lock lock{root_latch_};
+    // std::scoped_lock lock{root_latch_};
     auto node_handle = FindLeafPage(key, Operation::FIND, transaction);
     Rid* rid;
     if (!node_handle->LeafLookup(key, &rid))

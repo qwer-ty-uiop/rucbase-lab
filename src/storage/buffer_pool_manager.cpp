@@ -37,7 +37,9 @@ void BufferPoolManager::UpdatePage(Page* page,
     // 2 更新page table
     // 3 重置page的data，更新page id
     if (page->IsDirty()) {
-        FlushPage(page->GetPageId());  // 写回磁盘
+        disk_manager_->write_page(page->GetPageId().fd,
+                                  page->GetPageId().page_no, page->GetData(),
+                                  PAGE_SIZE);
         page->is_dirty_ = false;
     }
     // 更新哈希映射page_table
