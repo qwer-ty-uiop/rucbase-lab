@@ -194,7 +194,7 @@ void IxNodeHandle::erase_pair(int pos) {
     memmove(key_slot, key_slot + len, remain);
 
     Rid* rid = get_rid(pos);
-    int len = sizeof(rid);
+    len = sizeof(rid);
     memmove(rid, rid + 1, len * remain);
     page_hdr->num_key--;
 }
