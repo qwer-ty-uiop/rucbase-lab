@@ -121,28 +121,26 @@ void IxNodeHandle::insert_pairs(int pos,
     // 4. 更新当前节点的键数量
     // 非法位置
     if (pos < 0 || pos > GetSize()) {
-        throw InternalError("Invalid insert pos");
-    }
-    char* move_key;
-    for (int i = page_hdr->num_key - 1; i >= pos; i--) {
-        move_key = get_key(i);
-        set_key(i + n, move_key);
-    }
-    for (int i = n - 1; i >= 0; i--) {
-        set_key(i + pos, key + i * file_hdr->col_len);
+        return;
     }
 
-    Rid move_rid;
-    for (int i = page_hdr->num_key - 1; i >= pos; i--) {
-        move_rid = *get_rid(i);
-        set_rid(i + n, move_rid);
-    }
-    for (int i = n - 1; i >= 0; i--) {
-        move_rid = rid[i];
-        set_rid(i + pos, move_rid);
-    }
+    if (!page_hdr->num_key || pos <= page_hdr->num_key) {
+        auto tot_len = file_hdr->col_len;
+        auto key_len = tot_len * n,
+             last_key_len = tot_len * (page_hdr->num_key - pos);
+        auto rid_len = sizeof(Rid) * n,
+             last_rid_len = (page_hdr->num_key - pos) * sizeof(Rid);
 
-    page_hdr->num_key += n;
+        memmove(get_key(pos + n), get_key(pos), last_key_len);
+        memmove(get_rid(pos + n), get_rid(pos), last_rid_len);
+
+        auto now_keys = get_key(pos);
+        auto now_rids = get_rid(pos);
+        memcpy(now_keys, key, key_len);
+        memcpy(now_rids, rid, rid_len);
+
+        page_hdr->num_key += n;
+    }
 }
 
 /**
