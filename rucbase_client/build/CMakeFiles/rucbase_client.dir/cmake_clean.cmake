@@ -1,5 +1,6 @@
 file(REMOVE_RECURSE
   "CMakeFiles/rucbase_client.dir/main.cpp.o"
+  "CMakeFiles/rucbase_client.dir/main.cpp.o.d"
   "rucbase_client"
   "rucbase_client.pdb"
 )

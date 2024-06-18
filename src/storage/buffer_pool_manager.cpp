@@ -50,7 +50,7 @@ void BufferPoolManager::UpdatePage(Page* page,
     // 更新page id
     page->id_ = new_page_id;
     // 更新replacer，让这个页框不能被victim分配
-    replacer_->Pin(new_frame_id);
+    //replacer_->Pin(new_frame_id);
     // page->pin_count_ = 1;
 }
 
@@ -194,6 +194,8 @@ Page* BufferPoolManager::NewPage(PageId* page_id) {
     Page& new_page = pages_[frame_id];
     // 用取得的页框来执行更新元数据等操作
     UpdatePage(&new_page, *page_id, frame_id);
+    replacer_->Pin(frame_id);
+    new_page.pin_count_++;
     return &new_page;
 }
 
