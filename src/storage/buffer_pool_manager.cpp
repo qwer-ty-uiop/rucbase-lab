@@ -87,14 +87,14 @@ Page* BufferPoolManager::FetchPage(PageId page_id) {
     if (!FindVictimPage(&frame_id)) {
         return nullptr;
     }
-    Page& fecth_page = pages_[frame_id];
+    Page& fetch_page = pages_[frame_id];
     // 更新pages_数组信息（删除原来映射，加入新增映射等等）
-    UpdatePage(&fecth_page, page_id, frame_id);
+    UpdatePage(&fetch_page, page_id, frame_id);
 
     //  从磁盘读取page内容
-    disk_manager_->read_page(page_id.fd, page_id.page_no, fecth_page.data_,
+    disk_manager_->read_page(page_id.fd, page_id.page_no, fetch_page.data_,
                              PAGE_SIZE);
-    return &fecth_page;
+    return &fetch_page;
 }
 
 /**

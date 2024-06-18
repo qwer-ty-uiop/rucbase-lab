@@ -303,6 +303,7 @@ TEST_F(BPlusTreeTests, LargeScaleTest) {
     std::shuffle(keys.begin(), keys.end(), rng);
 
     const char* index_key;
+    int cnt = 1;
     for (auto key : keys) {
         int32_t value = key & 0xFFFFFFFF;  // key的低32位
         Rid rid = {
@@ -313,6 +314,9 @@ TEST_F(BPlusTreeTests, LargeScaleTest) {
         bool insert_ret =
             ih_->insert_entry(index_key, rid, txn_.get());  // 调用Insert
         ASSERT_EQ(insert_ret, true);
+        // Draw(buffer_pool_manager_.get(),
+        //      "2insert" + std::to_string(key) + ".dot");
+        std::cout << cnt++ << '\n';
     }
 
     // test GetValue

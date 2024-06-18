@@ -120,27 +120,21 @@ void IxNodeHandle::insert_pairs(int pos,
     // 3. 通过rid获取n个连续键值对的rid值，并把n个rid值插入到pos位置
     // 4. 更新当前节点的键数量
     // 非法位置
-    if (pos < 0 || pos > GetSize()) {
-        return;
+    int size = GetSize();
+    if(!(pos >= 0 && pos <= size)){
+	    return;
     }
-
-    if (!page_hdr->num_key || pos <= page_hdr->num_key) {
-        auto tot_len = file_hdr->col_len;
-        auto key_len = tot_len * n,
-             last_key_len = tot_len * (page_hdr->num_key - pos);
-        auto rid_len = sizeof(Rid) * n,
-             last_rid_len = (page_hdr->num_key - pos) * sizeof(Rid);
-
-        memmove(get_key(pos + n), get_key(pos), last_key_len);
-        memmove(get_rid(pos + n), get_rid(pos), last_rid_len);
-
-        auto now_keys = get_key(pos);
-        auto now_rids = get_rid(pos);
-        memcpy(now_keys, key, key_len);
-        memcpy(now_rids, rid, rid_len);
-
-        page_hdr->num_key += n;
+    // 腾出空间
+    for(int i = size - 1; i >= pos; --i) {
+      set_key(i + n, get_key(i));
+      set_rid(i + n, *get_rid(i));
     }
+    // 插入
+    for(int i = 0; i < n; ++i) {
+      set_key(pos + i, key + file_hdr->col_len * i); //迭代获取新的key
+      set_rid(pos + i, rid[i]);
+    }
+    SetSize(size + n);
 }
 
 /**
