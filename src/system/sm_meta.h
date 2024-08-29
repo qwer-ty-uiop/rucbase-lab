@@ -17,13 +17,13 @@ struct ColMeta {
     int offset;            // 字段位于记录中的偏移量
     bool index;            // 该字段上是否建立索引
 
-    friend std::ostream &operator<<(std::ostream &os, const ColMeta &col) {
+    friend std::ostream& operator<<(std::ostream& os, const ColMeta& col) {
         // ColMeta中有各个基本类型的变量，然后调用重载的这些变量的操作符<<（具体实现逻辑在defs.h）
         return os << col.tab_name << ' ' << col.name << ' ' << col.type << ' ' << col.len << ' ' << col.offset << ' '
                   << col.index;
     }
 
-    friend std::istream &operator>>(std::istream &is, ColMeta &col) {
+    friend std::istream& operator>>(std::istream& is, ColMeta& col) {
         return is >> col.tab_name >> col.name >> col.type >> col.len >> col.offset >> col.index;
     }
 };
@@ -39,8 +39,12 @@ struct TabMeta {
      * @return true
      * @return false
      */
-    bool is_col(const std::string &col_name) const {
+    bool is_col(const std::string& col_name) const {
         // lab3 task1 Todo
+        for (auto& col : cols) {
+            if (col.name == col_name)
+                return true;
+        }
         return false;
         // lab3 task1 Todo End
     }
@@ -50,22 +54,29 @@ struct TabMeta {
      * @param col_name 目标列名
      * @return std::vector<ColMeta>::iterator
      */
-    std::vector<ColMeta>::iterator get_col(const std::string &col_name) {
+    std::vector<ColMeta>::iterator get_col(const std::string& col_name) {
         // lab3 task1 Todo
-        std::vector<ColMeta>::iterator it;
+        if (!is_col(col_name))
+            return std::vector<ColMeta>::iterator(nullptr);
+        std::vector<ColMeta>::iterator it = cols.begin();
+        for (; it != cols.end(); it++) {
+            if (it->name == col_name)
+                break;
+        }
         return it;
         // lab3 task1 Todo End
     }
 
-    friend std::ostream &operator<<(std::ostream &os, const TabMeta &tab) {
-        os << tab.name << '\n' << tab.cols.size() << '\n';
-        for (auto &col : tab.cols) {
+    friend std::ostream& operator<<(std::ostream& os, const TabMeta& tab) {
+        os << tab.name << '\n'
+           << tab.cols.size() << '\n';
+        for (auto& col : tab.cols) {
             os << col << '\n';  // col是ColMeta类型，然后调用重载的ColMeta的操作符<<
         }
         return os;
     }
 
-    friend std::istream &operator>>(std::istream &is, TabMeta &tab) {
+    friend std::istream& operator>>(std::istream& is, TabMeta& tab) {
         size_t n;
         is >> tab.name >> n;
         for (size_t i = 0; i < n; i++) {
@@ -88,9 +99,9 @@ class DbMeta {
    public:
     // DbMeta(std::string name) : name_(name) {}
 
-    bool is_table(const std::string &tab_name) const { return tabs_.find(tab_name) != tabs_.end(); }
+    bool is_table(const std::string& tab_name) const { return tabs_.find(tab_name) != tabs_.end(); }
 
-    TabMeta &get_table(const std::string &tab_name) {
+    TabMeta& get_table(const std::string& tab_name) {
         auto pos = tabs_.find(tab_name);
         if (pos == tabs_.end()) {
             throw TableNotFoundError(tab_name);
@@ -99,15 +110,16 @@ class DbMeta {
     }
 
     // 重载操作符 <<
-    friend std::ostream &operator<<(std::ostream &os, const DbMeta &db_meta) {
-        os << db_meta.name_ << '\n' << db_meta.tabs_.size() << '\n';
-        for (auto &entry : db_meta.tabs_) {
+    friend std::ostream& operator<<(std::ostream& os, const DbMeta& db_meta) {
+        os << db_meta.name_ << '\n'
+           << db_meta.tabs_.size() << '\n';
+        for (auto& entry : db_meta.tabs_) {
             os << entry.second << '\n';  // entry.second是TabMeta类型，然后调用重载的TabMeta的操作符<<
         }
         return os;
     }
 
-    friend std::istream &operator>>(std::istream &is, DbMeta &db_meta) {
+    friend std::istream& operator>>(std::istream& is, DbMeta& db_meta) {
         size_t n;
         is >> db_meta.name_ >> n;
         for (size_t i = 0; i < n; i++) {
