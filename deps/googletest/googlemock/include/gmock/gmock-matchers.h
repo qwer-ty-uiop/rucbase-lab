@@ -240,7 +240,7 @@
 //
 // To learn more about using these macros, please search for 'MATCHER'
 // on
-// https://github.com/google/googletest/blob/main/docs/gmock_cook_book.md
+// https://github.com/google/googletest/blob/master/docs/gmock_cook_book.md
 //
 // This file also implements some commonly used argument matchers.  More
 // matchers can be defined by the user implementing the
@@ -313,9 +313,7 @@ class StringMatchResultListener : public MatchResultListener {
  private:
   ::std::stringstream ss_;
 
-  StringMatchResultListener(const StringMatchResultListener&) = delete;
-  StringMatchResultListener& operator=(const StringMatchResultListener&) =
-      delete;
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(StringMatchResultListener);
 };
 
 // Anything inside the 'internal' namespace IS INTERNAL IMPLEMENTATION
@@ -535,18 +533,19 @@ inline Matcher<T> SafeMatcherCast(const Matcher<U>& matcher) {
                 "T must be implicitly convertible to U");
   // Enforce that we are not converting a non-reference type T to a reference
   // type U.
-  static_assert(std::is_reference<T>::value || !std::is_reference<U>::value,
-                "cannot convert non reference arg to reference");
+  GTEST_COMPILE_ASSERT_(
+      std::is_reference<T>::value || !std::is_reference<U>::value,
+      cannot_convert_non_reference_arg_to_reference);
   // In case both T and U are arithmetic types, enforce that the
   // conversion is not lossy.
   typedef GTEST_REMOVE_REFERENCE_AND_CONST_(T) RawT;
   typedef GTEST_REMOVE_REFERENCE_AND_CONST_(U) RawU;
   constexpr bool kTIsOther = GMOCK_KIND_OF_(RawT) == internal::kOther;
   constexpr bool kUIsOther = GMOCK_KIND_OF_(RawU) == internal::kOther;
-  static_assert(
+  GTEST_COMPILE_ASSERT_(
       kTIsOther || kUIsOther ||
           (internal::LosslessArithmeticConvertible<RawT, RawU>::value),
-      "conversion of arithmetic types must be lossless");
+      conversion_of_arithmetic_types_must_be_lossless);
   return MatcherCast<T>(matcher);
 }
 
@@ -679,9 +678,9 @@ bool TupleMatches(const MatcherTuple& matcher_tuple,
                   const ValueTuple& value_tuple) {
   // Makes sure that matcher_tuple and value_tuple have the same
   // number of fields.
-  static_assert(std::tuple_size<MatcherTuple>::value ==
-                    std::tuple_size<ValueTuple>::value,
-                "matcher and value have different numbers of fields");
+  GTEST_COMPILE_ASSERT_(std::tuple_size<MatcherTuple>::value ==
+                            std::tuple_size<ValueTuple>::value,
+                        matcher_and_value_have_different_numbers_of_fields);
   return TuplePrefix<std::tuple_size<ValueTuple>::value>::Matches(matcher_tuple,
                                                                   value_tuple);
 }
@@ -2259,11 +2258,7 @@ class ResultOfMatcher {
     }
 
     bool MatchAndExplain(T obj, MatchResultListener* listener) const override {
-      if (result_description_.empty()) {
-        *listener << "which is mapped by the given callable to ";
-      } else {
-        *listener << "whose " << result_description_ << " is ";
-      }
+      *listener << "which is mapped by the given callable to ";
       // Cannot pass the return value directly to MatchPrintAndExplain, which
       // takes a non-const reference as argument.
       // Also, specifying template argument explicitly is needed because T could
@@ -2557,8 +2552,7 @@ class WhenSortedByMatcher {
     const Comparator comparator_;
     const Matcher<const ::std::vector<LhsValue>&> matcher_;
 
-    Impl(const Impl&) = delete;
-    Impl& operator=(const Impl&) = delete;
+    GTEST_DISALLOW_COPY_AND_ASSIGN_(Impl);
   };
 
  private:
@@ -2572,9 +2566,9 @@ class WhenSortedByMatcher {
 // container and the RHS container respectively.
 template <typename TupleMatcher, typename RhsContainer>
 class PointwiseMatcher {
-  static_assert(
+  GTEST_COMPILE_ASSERT_(
       !IsHashTable<GTEST_REMOVE_REFERENCE_AND_CONST_(RhsContainer)>::value,
-      "use UnorderedPointwise with hash tables");
+      use_UnorderedPointwise_with_hash_tables);
 
  public:
   typedef internal::StlContainerView<RhsContainer> RhsView;
@@ -2593,9 +2587,9 @@ class PointwiseMatcher {
 
   template <typename LhsContainer>
   operator Matcher<LhsContainer>() const {
-    static_assert(
+    GTEST_COMPILE_ASSERT_(
         !IsHashTable<GTEST_REMOVE_REFERENCE_AND_CONST_(LhsContainer)>::value,
-        "use UnorderedPointwise with hash tables");
+        use_UnorderedPointwise_with_hash_tables);
 
     return Matcher<LhsContainer>(
         new Impl<const LhsContainer&>(tuple_matcher_, rhs_));
@@ -3235,21 +3229,6 @@ auto UnpackStructImpl(const T& t, MakeIndexSequence<16>, char) {
   const auto& [a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p] = t;
   return std::tie(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p);
 }
-template <typename T>
-auto UnpackStructImpl(const T& t, MakeIndexSequence<17>, char) {
-  const auto& [a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q] = t;
-  return std::tie(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q);
-}
-template <typename T>
-auto UnpackStructImpl(const T& t, MakeIndexSequence<18>, char) {
-  const auto& [a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r] = t;
-  return std::tie(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r);
-}
-template <typename T>
-auto UnpackStructImpl(const T& t, MakeIndexSequence<19>, char) {
-  const auto& [a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s] = t;
-  return std::tie(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s);
-}
 #endif  // defined(__cpp_structured_bindings)
 
 template <size_t I, typename T>
@@ -3316,8 +3295,8 @@ class FieldsAreMatcherImpl<Struct, IndexSequence<I...>>
     std::vector<StringMatchResultListener> inner_listener(sizeof...(I));
 
     VariadicExpand(
-        {failed_pos == ~size_t{}&& !std::get<I>(matchers_).MatchAndExplain(
-                           std::get<I>(tuple), &inner_listener[I])
+        {failed_pos == ~size_t{} && !std::get<I>(matchers_).MatchAndExplain(
+                                        std::get<I>(tuple), &inner_listener[I])
              ? failed_pos = I
              : 0 ...});
     if (failed_pos != ~size_t{}) {
@@ -3742,10 +3721,10 @@ class ElementsAreMatcher {
 
   template <typename Container>
   operator Matcher<Container>() const {
-    static_assert(
+    GTEST_COMPILE_ASSERT_(
         !IsHashTable<GTEST_REMOVE_REFERENCE_AND_CONST_(Container)>::value ||
             ::std::tuple_size<MatcherTuple>::value < 2,
-        "use UnorderedElementsAre with hash tables");
+        use_UnorderedElementsAre_with_hash_tables);
 
     typedef GTEST_REMOVE_REFERENCE_AND_CONST_(Container) RawContainer;
     typedef typename internal::StlContainerView<RawContainer>::type View;
@@ -3793,9 +3772,9 @@ class ElementsAreArrayMatcher {
 
   template <typename Container>
   operator Matcher<Container>() const {
-    static_assert(
+    GTEST_COMPILE_ASSERT_(
         !IsHashTable<GTEST_REMOVE_REFERENCE_AND_CONST_(Container)>::value,
-        "use UnorderedElementsAreArray with hash tables");
+        use_UnorderedElementsAreArray_with_hash_tables);
 
     return Matcher<Container>(new ElementsAreMatcherImpl<const Container&>(
         matchers_.begin(), matchers_.end()));
@@ -5083,8 +5062,7 @@ inline bool ExplainMatchResult(M matcher, const T& value,
 //
 // MATCHER_P(XAndYThat, matcher,
 //           "X that " + DescribeMatcher<int>(matcher, negation) +
-//               (negation ? " or" : " and") + " Y that " +
-//               DescribeMatcher<double>(matcher, negation)) {
+//               " and Y that " + DescribeMatcher<double>(matcher, negation)) {
 //   return ExplainMatchResult(matcher, arg.x(), result_listener) &&
 //          ExplainMatchResult(matcher, arg.y(), result_listener);
 // }

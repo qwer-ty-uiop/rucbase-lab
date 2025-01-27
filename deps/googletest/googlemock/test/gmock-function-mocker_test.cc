@@ -27,11 +27,6 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-// Silence C4503 (decorated name length exceeded) for MSVC.
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4503)
-#endif
 
 // Google Mock - a framework for writing C++ mock classes.
 //
@@ -42,7 +37,7 @@
 // MSDN says the header file to be included for STDMETHOD is BaseTyps.h but
 // we are getting compiler errors if we use basetyps.h, hence including
 // objbase.h for definition of STDMETHOD.
-#include <objbase.h>
+# include <objbase.h>
 #endif  // GTEST_OS_WINDOWS
 
 #include <functional>
@@ -70,7 +65,7 @@ using testing::Return;
 using testing::ReturnRef;
 using testing::TypedEq;
 
-template <typename T>
+template<typename T>
 class TemplatedCopyable {
  public:
   TemplatedCopyable() {}
@@ -87,7 +82,7 @@ class FooInterface {
 
   virtual int Nullary() = 0;
   virtual bool Unary(int x) = 0;
-  virtual long Binary(short x, int y) = 0;                     // NOLINT
+  virtual long Binary(short x, int y) = 0;  // NOLINT
   virtual int Decimal(bool b, char c, short d, int e, long f,  // NOLINT
                       float g, double h, unsigned i, char* j,
                       const std::string& k) = 0;
@@ -138,8 +133,8 @@ class FooInterface {
 // signature. This was fixed in Visual Studio 2008. However, the compiler
 // still emits a warning that alerts about this change in behavior.
 #ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4373)
+# pragma warning(push)
+# pragma warning(disable : 4373)
 #endif
 class MockFoo : public FooInterface {
  public:
@@ -208,8 +203,7 @@ class MockFoo : public FooInterface {
   MOCK_METHOD(int, RefQualifiedOverloaded, (), (ref(&&), override));
 
  private:
-  MockFoo(const MockFoo&) = delete;
-  MockFoo& operator=(const MockFoo&) = delete;
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(MockFoo);
 };
 
 class LegacyMockFoo : public FooInterface {
@@ -281,12 +275,11 @@ class LegacyMockFoo : public FooInterface {
   int RefQualifiedOverloaded() && override { return 0; }
 
  private:
-  LegacyMockFoo(const LegacyMockFoo&) = delete;
-  LegacyMockFoo& operator=(const LegacyMockFoo&) = delete;
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(LegacyMockFoo);
 };
 
 #ifdef _MSC_VER
-#pragma warning(pop)
+# pragma warning(pop)
 #endif
 
 template <class T>
@@ -500,8 +493,7 @@ class MockB {
   MOCK_METHOD(void, DoB, ());
 
  private:
-  MockB(const MockB&) = delete;
-  MockB& operator=(const MockB&) = delete;
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(MockB);
 };
 
 class LegacyMockB {
@@ -511,8 +503,7 @@ class LegacyMockB {
   MOCK_METHOD0(DoB, void());
 
  private:
-  LegacyMockB(const LegacyMockB&) = delete;
-  LegacyMockB& operator=(const LegacyMockB&) = delete;
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(LegacyMockB);
 };
 
 template <typename T>
@@ -567,8 +558,7 @@ class MockStack : public StackInterface<T> {
   MOCK_METHOD((std::map<int, int>), ReturnTypeWithComma, (int), (const));
 
  private:
-  MockStack(const MockStack&) = delete;
-  MockStack& operator=(const MockStack&) = delete;
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(MockStack);
 };
 
 template <typename T>
@@ -586,8 +576,7 @@ class LegacyMockStack : public StackInterface<T> {
   MOCK_CONST_METHOD1_T(ReturnTypeWithComma, std::map<int, int>(int));  // NOLINT
 
  private:
-  LegacyMockStack(const LegacyMockStack&) = delete;
-  LegacyMockStack& operator=(const LegacyMockStack&) = delete;
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(LegacyMockStack);
 };
 
 template <typename T>
@@ -606,8 +595,10 @@ TYPED_TEST(TemplateMockTest, Works) {
       .WillOnce(Return(0));
   EXPECT_CALL(mock, Push(_));
   int n = 5;
-  EXPECT_CALL(mock, GetTop()).WillOnce(ReturnRef(n));
-  EXPECT_CALL(mock, Pop()).Times(AnyNumber());
+  EXPECT_CALL(mock, GetTop())
+      .WillOnce(ReturnRef(n));
+  EXPECT_CALL(mock, Pop())
+      .Times(AnyNumber());
 
   EXPECT_EQ(0, mock.GetSize());
   mock.Push(5);
@@ -621,8 +612,10 @@ TYPED_TEST(TemplateMockTest, MethodWithCommaInReturnTypeWorks) {
   TypeParam mock;
 
   const std::map<int, int> a_map;
-  EXPECT_CALL(mock, ReturnTypeWithComma()).WillOnce(Return(a_map));
-  EXPECT_CALL(mock, ReturnTypeWithComma(1)).WillOnce(Return(a_map));
+  EXPECT_CALL(mock, ReturnTypeWithComma())
+      .WillOnce(Return(a_map));
+  EXPECT_CALL(mock, ReturnTypeWithComma(1))
+      .WillOnce(Return(a_map));
 
   EXPECT_EQ(a_map, mock.ReturnTypeWithComma());
   EXPECT_EQ(a_map, mock.ReturnTypeWithComma(1));
@@ -657,8 +650,7 @@ class MockStackWithCallType : public StackInterfaceWithCallType<T> {
               (Calltype(STDMETHODCALLTYPE), override, const));
 
  private:
-  MockStackWithCallType(const MockStackWithCallType&) = delete;
-  MockStackWithCallType& operator=(const MockStackWithCallType&) = delete;
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(MockStackWithCallType);
 };
 
 template <typename T>
@@ -672,9 +664,7 @@ class LegacyMockStackWithCallType : public StackInterfaceWithCallType<T> {
   MOCK_CONST_METHOD0_T_WITH_CALLTYPE(STDMETHODCALLTYPE, GetTop, const T&());
 
  private:
-  LegacyMockStackWithCallType(const LegacyMockStackWithCallType&) = delete;
-  LegacyMockStackWithCallType& operator=(const LegacyMockStackWithCallType&) =
-      delete;
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(LegacyMockStackWithCallType);
 };
 
 template <typename T>
@@ -695,8 +685,10 @@ TYPED_TEST(TemplateMockTestWithCallType, Works) {
       .WillOnce(Return(0));
   EXPECT_CALL(mock, Push(_));
   int n = 5;
-  EXPECT_CALL(mock, GetTop()).WillOnce(ReturnRef(n));
-  EXPECT_CALL(mock, Pop()).Times(AnyNumber());
+  EXPECT_CALL(mock, GetTop())
+      .WillOnce(ReturnRef(n));
+  EXPECT_CALL(mock, Pop())
+      .Times(AnyNumber());
 
   EXPECT_EQ(0, mock.GetSize());
   mock.Push(5);
@@ -724,9 +716,7 @@ class MockOverloadedOnArgNumber {
   MY_MOCK_METHODS1_;
 
  private:
-  MockOverloadedOnArgNumber(const MockOverloadedOnArgNumber&) = delete;
-  MockOverloadedOnArgNumber& operator=(const MockOverloadedOnArgNumber&) =
-      delete;
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(MockOverloadedOnArgNumber);
 };
 
 class LegacyMockOverloadedOnArgNumber {
@@ -736,10 +726,7 @@ class LegacyMockOverloadedOnArgNumber {
   LEGACY_MY_MOCK_METHODS1_;
 
  private:
-  LegacyMockOverloadedOnArgNumber(const LegacyMockOverloadedOnArgNumber&) =
-      delete;
-  LegacyMockOverloadedOnArgNumber& operator=(
-      const LegacyMockOverloadedOnArgNumber&) = delete;
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(LegacyMockOverloadedOnArgNumber);
 };
 
 template <typename T>
@@ -760,9 +747,9 @@ TYPED_TEST(OverloadedMockMethodTest, CanOverloadOnArgNumberInMacroBody) {
   EXPECT_TRUE(mock.Overloaded(true, 1));
 }
 
-#define MY_MOCK_METHODS2_                     \
-  MOCK_CONST_METHOD1(Overloaded, int(int n)); \
-  MOCK_METHOD1(Overloaded, int(int n))
+#define MY_MOCK_METHODS2_ \
+    MOCK_CONST_METHOD1(Overloaded, int(int n)); \
+    MOCK_METHOD1(Overloaded, int(int n))
 
 class MockOverloadedOnConstness {
  public:
@@ -771,9 +758,7 @@ class MockOverloadedOnConstness {
   MY_MOCK_METHODS2_;
 
  private:
-  MockOverloadedOnConstness(const MockOverloadedOnConstness&) = delete;
-  MockOverloadedOnConstness& operator=(const MockOverloadedOnConstness&) =
-      delete;
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(MockOverloadedOnConstness);
 };
 
 TEST(MockMethodOverloadedMockMethodTest, CanOverloadOnConstnessInMacroBody) {
@@ -794,7 +779,9 @@ TEST(MockMethodMockFunctionTest, WorksForVoidNullary) {
 
 TEST(MockMethodMockFunctionTest, WorksForNonVoidNullary) {
   MockFunction<int()> foo;
-  EXPECT_CALL(foo, Call()).WillOnce(Return(1)).WillOnce(Return(2));
+  EXPECT_CALL(foo, Call())
+      .WillOnce(Return(1))
+      .WillOnce(Return(2));
   EXPECT_EQ(1, foo.Call());
   EXPECT_EQ(2, foo.Call());
 }
@@ -807,17 +794,19 @@ TEST(MockMethodMockFunctionTest, WorksForVoidUnary) {
 
 TEST(MockMethodMockFunctionTest, WorksForNonVoidBinary) {
   MockFunction<int(bool, int)> foo;
-  EXPECT_CALL(foo, Call(false, 42)).WillOnce(Return(1)).WillOnce(Return(2));
-  EXPECT_CALL(foo, Call(true, Ge(100))).WillOnce(Return(3));
+  EXPECT_CALL(foo, Call(false, 42))
+      .WillOnce(Return(1))
+      .WillOnce(Return(2));
+  EXPECT_CALL(foo, Call(true, Ge(100)))
+      .WillOnce(Return(3));
   EXPECT_EQ(1, foo.Call(false, 42));
   EXPECT_EQ(2, foo.Call(false, 42));
   EXPECT_EQ(3, foo.Call(true, 120));
 }
 
 TEST(MockMethodMockFunctionTest, WorksFor10Arguments) {
-  MockFunction<int(bool a0, char a1, int a2, int a3, int a4, int a5, int a6,
-                   char a7, int a8, bool a9)>
-      foo;
+  MockFunction<int(bool a0, char a1, int a2, int a3, int a4,
+                   int a5, int a6, char a7, int a8, bool a9)> foo;
   EXPECT_CALL(foo, Call(_, 'a', _, _, _, _, _, _, _, _))
       .WillOnce(Return(1))
       .WillOnce(Return(2));
@@ -827,7 +816,9 @@ TEST(MockMethodMockFunctionTest, WorksFor10Arguments) {
 
 TEST(MockMethodMockFunctionTest, AsStdFunction) {
   MockFunction<int(int)> foo;
-  auto call = [](const std::function<int(int)>& f, int i) { return f(i); };
+  auto call = [](const std::function<int(int)> &f, int i) {
+    return f(i);
+  };
   EXPECT_CALL(foo, Call(1)).WillOnce(Return(-1));
   EXPECT_CALL(foo, Call(2)).WillOnce(Return(-2));
   EXPECT_EQ(-1, call(foo.AsStdFunction(), 1));
@@ -845,8 +836,10 @@ TEST(MockMethodMockFunctionTest, AsStdFunctionReturnsReference) {
 }
 
 TEST(MockMethodMockFunctionTest, AsStdFunctionWithReferenceParameter) {
-  MockFunction<int(int&)> foo;
-  auto call = [](const std::function<int(int&)>& f, int& i) { return f(i); };
+  MockFunction<int(int &)> foo;
+  auto call = [](const std::function<int(int& )> &f, int &i) {
+    return f(i);
+  };
   int i = 42;
   EXPECT_CALL(foo, Call(i)).WillOnce(Return(-1));
   EXPECT_EQ(-1, call(foo.AsStdFunction(), i));
@@ -895,7 +888,8 @@ TYPED_TEST(
 }
 
 template <typename F>
-struct AlternateCallable {};
+struct AlternateCallable {
+};
 
 TYPED_TEST(MockMethodMockFunctionSignatureTest,
            IsMockFunctionTemplateArgumentDeducedForAlternateCallable) {
@@ -904,13 +898,15 @@ TYPED_TEST(MockMethodMockFunctionSignatureTest,
   EXPECT_TRUE(IsMockFunctionTemplateArgumentDeducedTo<TypeParam>(foo));
 }
 
-TYPED_TEST(MockMethodMockFunctionSignatureTest,
-           IsMockFunctionCallMethodSignatureTheSameForAlternateCallable) {
+TYPED_TEST(
+    MockMethodMockFunctionSignatureTest,
+    IsMockFunctionCallMethodSignatureTheSameForAlternateCallable) {
   using ForRawSignature = decltype(&MockFunction<TypeParam>::Call);
   using ForStdFunction =
       decltype(&MockFunction<std::function<TypeParam>>::Call);
   EXPECT_TRUE((std::is_same<ForRawSignature, ForStdFunction>::value));
 }
+
 
 struct MockMethodSizes0 {
   MOCK_METHOD(void, func, ());
@@ -929,20 +925,21 @@ struct MockMethodSizes4 {
 };
 
 struct LegacyMockMethodSizes0 {
-  MOCK_METHOD0(func, void());
+    MOCK_METHOD0(func, void());
 };
 struct LegacyMockMethodSizes1 {
-  MOCK_METHOD1(func, void(int));
+    MOCK_METHOD1(func, void(int));
 };
 struct LegacyMockMethodSizes2 {
-  MOCK_METHOD2(func, void(int, int));
+    MOCK_METHOD2(func, void(int, int));
 };
 struct LegacyMockMethodSizes3 {
-  MOCK_METHOD3(func, void(int, int, int));
+    MOCK_METHOD3(func, void(int, int, int));
 };
 struct LegacyMockMethodSizes4 {
-  MOCK_METHOD4(func, void(int, int, int, int));
+    MOCK_METHOD4(func, void(int, int, int, int));
 };
+
 
 TEST(MockMethodMockFunctionTest, MockMethodSizeOverhead) {
   EXPECT_EQ(sizeof(MockMethodSizes0), sizeof(MockMethodSizes1));

@@ -27,6 +27,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+
 // Google Mock - a framework for writing C++ mock classes.
 //
 // This program is for verifying that a leaked mock object can be
@@ -51,8 +52,7 @@ class MockFoo : public FooInterface {
   MOCK_METHOD0(DoThis, void());
 
  private:
-  MockFoo(const MockFoo&) = delete;
-  MockFoo& operator=(const MockFoo&) = delete;
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(MockFoo);
 };
 
 TEST(LeakTest, LeakedMockWithExpectCallCausesFailureWhenLeakCheckingIsEnabled) {

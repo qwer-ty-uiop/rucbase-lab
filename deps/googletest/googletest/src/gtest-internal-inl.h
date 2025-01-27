@@ -35,7 +35,7 @@
 #define GOOGLETEST_SRC_GTEST_INTERNAL_INL_H_
 
 #ifndef _WIN32_WCE
-#include <errno.h>
+# include <errno.h>
 #endif  // !_WIN32_WCE
 #include <stddef.h>
 #include <stdlib.h>  // For strtoll/_strtoul64/malloc/free.
@@ -50,16 +50,16 @@
 #include "gtest/internal/gtest-port.h"
 
 #if GTEST_CAN_STREAM_RESULTS_
-#include <arpa/inet.h>  // NOLINT
-#include <netdb.h>      // NOLINT
+# include <arpa/inet.h>  // NOLINT
+# include <netdb.h>  // NOLINT
 #endif
 
 #if GTEST_OS_WINDOWS
-#include <windows.h>  // NOLINT
-#endif                // GTEST_OS_WINDOWS
+# include <windows.h>  // NOLINT
+#endif  // GTEST_OS_WINDOWS
 
-#include "gtest/gtest-spi.h"
 #include "gtest/gtest.h"
+#include "gtest/gtest-spi.h"
 
 GTEST_DISABLE_MSC_WARNINGS_PUSH_(4251 \
 /* class A needs to have dll-interface to be used by clients of class B */)
@@ -109,16 +109,15 @@ GTEST_API_ bool ParseFlag(const char* str, const char* flag, int32_t* value);
 // Returns a random seed in range [1, kMaxRandomSeed] based on the
 // given --gtest_random_seed flag value.
 inline int GetRandomSeedFromFlag(int32_t random_seed_flag) {
-  const unsigned int raw_seed =
-      (random_seed_flag == 0) ? static_cast<unsigned int>(GetTimeInMillis())
-                              : static_cast<unsigned int>(random_seed_flag);
+  const unsigned int raw_seed = (random_seed_flag == 0) ?
+      static_cast<unsigned int>(GetTimeInMillis()) :
+      static_cast<unsigned int>(random_seed_flag);
 
   // Normalizes the actual seed to range [1, kMaxRandomSeed] such that
   // it's easy to type.
   const int normalized_seed =
       static_cast<int>((raw_seed - 1U) %
-                       static_cast<unsigned int>(kMaxRandomSeed)) +
-      1;
+                       static_cast<unsigned int>(kMaxRandomSeed)) + 1;
   return normalized_seed;
 }
 
@@ -262,8 +261,8 @@ GTEST_API_ int32_t Int32FromEnvOrDie(const char* env_var, int32_t default_val);
 // returns true if and only if the test should be run on this shard. The test id
 // is some arbitrary but unique non-negative integer assigned to each test
 // method. Assumes that 0 <= shard_index < total_shards.
-GTEST_API_ bool ShouldRunTestOnShard(int total_shards, int shard_index,
-                                     int test_id);
+GTEST_API_ bool ShouldRunTestOnShard(
+    int total_shards, int shard_index, int test_id);
 
 // STL container utilities.
 
@@ -275,7 +274,8 @@ inline int CountIf(const Container& c, Predicate predicate) {
   // Solaris has a non-standard signature.
   int count = 0;
   for (auto it = c.begin(); it != c.end(); ++it) {
-    if (predicate(*it)) ++count;
+    if (predicate(*it))
+      ++count;
   }
   return count;
 }
@@ -424,9 +424,7 @@ class OsStackTraceGetterInterface {
   static const char* const kElidedFramesMarker;
 
  private:
-  OsStackTraceGetterInterface(const OsStackTraceGetterInterface&) = delete;
-  OsStackTraceGetterInterface& operator=(const OsStackTraceGetterInterface&) =
-      delete;
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(OsStackTraceGetterInterface);
 };
 
 // A working implementation of the OsStackTraceGetterInterface interface.
@@ -448,8 +446,7 @@ class OsStackTraceGetter : public OsStackTraceGetterInterface {
   void* caller_frame_ = nullptr;
 #endif  // GTEST_HAS_ABSL
 
-  OsStackTraceGetter(const OsStackTraceGetter&) = delete;
-  OsStackTraceGetter& operator=(const OsStackTraceGetter&) = delete;
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(OsStackTraceGetter);
 };
 
 // Information about a Google Test trace point.
@@ -462,7 +459,7 @@ struct TraceInfo {
 // This is the default global test part result reporter used in UnitTestImpl.
 // This class should only be used by UnitTestImpl.
 class DefaultGlobalTestPartResultReporter
-    : public TestPartResultReporterInterface {
+  : public TestPartResultReporterInterface {
  public:
   explicit DefaultGlobalTestPartResultReporter(UnitTestImpl* unit_test);
   // Implements the TestPartResultReporterInterface. Reports the test part
@@ -472,10 +469,7 @@ class DefaultGlobalTestPartResultReporter
  private:
   UnitTestImpl* const unit_test_;
 
-  DefaultGlobalTestPartResultReporter(
-      const DefaultGlobalTestPartResultReporter&) = delete;
-  DefaultGlobalTestPartResultReporter& operator=(
-      const DefaultGlobalTestPartResultReporter&) = delete;
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(DefaultGlobalTestPartResultReporter);
 };
 
 // This is the default per thread test part result reporter used in
@@ -491,10 +485,7 @@ class DefaultPerThreadTestPartResultReporter
  private:
   UnitTestImpl* const unit_test_;
 
-  DefaultPerThreadTestPartResultReporter(
-      const DefaultPerThreadTestPartResultReporter&) = delete;
-  DefaultPerThreadTestPartResultReporter& operator=(
-      const DefaultPerThreadTestPartResultReporter&) = delete;
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(DefaultPerThreadTestPartResultReporter);
 };
 
 // The private implementation of the UnitTest class.  We don't protect
@@ -507,9 +498,9 @@ class GTEST_API_ UnitTestImpl {
   virtual ~UnitTestImpl();
 
   // There are two different ways to register your own TestPartResultReporter.
-  // You can register your own reporter to listen either only for test results
+  // You can register your own repoter to listen either only for test results
   // from the current thread or for results from all threads.
-  // By default, each per-thread test result reporter just passes a new
+  // By default, each per-thread test result repoter just passes a new
   // TestPartResult to the global test result reporter, which registers the
   // test part result for the currently running test.
 
@@ -737,7 +728,9 @@ class GTEST_API_ UnitTestImpl {
   }
 
   // Clears the results of ad-hoc test assertions.
-  void ClearAdHocTestResult() { ad_hoc_test_result_.Clear(); }
+  void ClearAdHocTestResult() {
+    ad_hoc_test_result_.Clear();
+  }
 
   // Adds a TestProperty to the current TestResult object when invoked in a
   // context of a test or a test suite, or to the global property set. If the
@@ -745,7 +738,10 @@ class GTEST_API_ UnitTestImpl {
   // updated.
   void RecordProperty(const TestProperty& test_property);
 
-  enum ReactionToSharding { HONOR_SHARDING_PROTOCOL, IGNORE_SHARDING_PROTOCOL };
+  enum ReactionToSharding {
+    HONOR_SHARDING_PROTOCOL,
+    IGNORE_SHARDING_PROTOCOL
+  };
 
   // Matches the full name of each test against the user-specified
   // filter to decide whether the test should run, then records the
@@ -850,7 +846,7 @@ class GTEST_API_ UnitTestImpl {
       default_per_thread_test_part_result_reporter_;
 
   // Points to (but doesn't own) the global test part result reporter.
-  TestPartResultReporterInterface* global_test_part_result_reporter_;
+  TestPartResultReporterInterface* global_test_part_result_repoter_;
 
   // Protects read and write access to global_test_part_result_reporter_.
   internal::Mutex global_test_part_result_reporter_mutex_;
@@ -951,8 +947,7 @@ class GTEST_API_ UnitTestImpl {
   // starts.
   bool catch_exceptions_;
 
-  UnitTestImpl(const UnitTestImpl&) = delete;
-  UnitTestImpl& operator=(const UnitTestImpl&) = delete;
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(UnitTestImpl);
 };  // class UnitTestImpl
 
 // Convenience function for accessing the global UnitTest
@@ -975,9 +970,8 @@ GTEST_API_ bool IsValidEscape(char ch);
 GTEST_API_ bool AtomMatchesChar(bool escaped, char pattern, char ch);
 GTEST_API_ bool ValidateRegex(const char* regex);
 GTEST_API_ bool MatchRegexAtHead(const char* regex, const char* str);
-GTEST_API_ bool MatchRepetitionAndRegexAtHead(bool escaped, char ch,
-                                              char repeat, const char* regex,
-                                              const char* str);
+GTEST_API_ bool MatchRepetitionAndRegexAtHead(
+    bool escaped, char ch, char repeat, const char* regex, const char* str);
 GTEST_API_ bool MatchRegexAnywhere(const char* regex, const char* str);
 
 #endif  // GTEST_USES_SIMPLE_RE
@@ -1079,7 +1073,8 @@ class StreamingListener : public EmptyTestEventListener {
     }
 
     ~SocketWriter() override {
-      if (sockfd_ != -1) CloseConnection();
+      if (sockfd_ != -1)
+        CloseConnection();
     }
 
     // Sends a string to the socket.
@@ -1089,8 +1084,9 @@ class StreamingListener : public EmptyTestEventListener {
 
       const auto len = static_cast<size_t>(message.length());
       if (write(sockfd_, message.c_str(), len) != static_cast<ssize_t>(len)) {
-        GTEST_LOG_(WARNING) << "stream_result_to: failed to stream to "
-                            << host_name_ << ":" << port_num_;
+        GTEST_LOG_(WARNING)
+            << "stream_result_to: failed to stream to "
+            << host_name_ << ":" << port_num_;
       }
     }
 
@@ -1111,8 +1107,7 @@ class StreamingListener : public EmptyTestEventListener {
     const std::string host_name_;
     const std::string port_num_;
 
-    SocketWriter(const SocketWriter&) = delete;
-    SocketWriter& operator=(const SocketWriter&) = delete;
+    GTEST_DISALLOW_COPY_AND_ASSIGN_(SocketWriter);
   };  // class SocketWriter
 
   // Escapes '=', '&', '%', and '\n' characters in str as "%xx".
@@ -1124,9 +1119,7 @@ class StreamingListener : public EmptyTestEventListener {
   }
 
   explicit StreamingListener(AbstractSocketWriter* socket_writer)
-      : socket_writer_(socket_writer) {
-    Start();
-  }
+      : socket_writer_(socket_writer) { Start(); }
 
   void OnTestProgramStart(const UnitTest& /* unit_test */) override {
     SendLn("event=TestProgramStart");
@@ -1149,9 +1142,9 @@ class StreamingListener : public EmptyTestEventListener {
 
   void OnTestIterationEnd(const UnitTest& unit_test,
                           int /* iteration */) override {
-    SendLn("event=TestIterationEnd&passed=" + FormatBool(unit_test.Passed()) +
-           "&elapsed_time=" + StreamableToString(unit_test.elapsed_time()) +
-           "ms");
+    SendLn("event=TestIterationEnd&passed=" +
+           FormatBool(unit_test.Passed()) + "&elapsed_time=" +
+           StreamableToString(unit_test.elapsed_time()) + "ms");
   }
 
   // Note that "event=TestCaseStart" is a wire format and has to remain
@@ -1174,7 +1167,8 @@ class StreamingListener : public EmptyTestEventListener {
 
   void OnTestEnd(const TestInfo& test_info) override {
     SendLn("event=TestEnd&passed=" +
-           FormatBool((test_info.result())->Passed()) + "&elapsed_time=" +
+           FormatBool((test_info.result())->Passed()) +
+           "&elapsed_time=" +
            StreamableToString((test_info.result())->elapsed_time()) + "ms");
   }
 
@@ -1198,8 +1192,7 @@ class StreamingListener : public EmptyTestEventListener {
 
   const std::unique_ptr<AbstractSocketWriter> socket_writer_;
 
-  StreamingListener(const StreamingListener&) = delete;
-  StreamingListener& operator=(const StreamingListener&) = delete;
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(StreamingListener);
 };  // class StreamingListener
 
 #endif  // GTEST_CAN_STREAM_RESULTS_

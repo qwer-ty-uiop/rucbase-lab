@@ -248,9 +248,7 @@ EXPECT_CALL(my_mock, GetNumber())
     .WillOnce(Return(3));
 ```
 
-The `WillOnce` clause can be used any number of times on an expectation. Unlike
-`WillRepeatedly`, the action fed to each `WillOnce` call will be called at most
-once, so may be a move-only type and/or have an `&&`-qualified call operator.
+The `WillOnce` clause can be used any number of times on an expectation.
 
 #### WillRepeatedly {#EXPECT_CALL.WillRepeatedly}
 

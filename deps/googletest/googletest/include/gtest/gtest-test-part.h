@@ -36,7 +36,6 @@
 
 #include <iosfwd>
 #include <vector>
-
 #include "gtest/internal/gtest-internal.h"
 #include "gtest/internal/gtest-string.h"
 
@@ -145,8 +144,7 @@ class GTEST_API_ TestPartResultArray {
  private:
   std::vector<TestPartResult> array_;
 
-  TestPartResultArray(const TestPartResultArray&) = delete;
-  TestPartResultArray& operator=(const TestPartResultArray&) = delete;
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(TestPartResultArray);
 };
 
 // This interface knows how to report a test part result.
@@ -172,13 +170,11 @@ class GTEST_API_ HasNewFatalFailureHelper
   ~HasNewFatalFailureHelper() override;
   void ReportTestPartResult(const TestPartResult& result) override;
   bool has_new_fatal_failure() const { return has_new_fatal_failure_; }
-
  private:
   bool has_new_fatal_failure_;
   TestPartResultReporterInterface* original_reporter_;
 
-  HasNewFatalFailureHelper(const HasNewFatalFailureHelper&) = delete;
-  HasNewFatalFailureHelper& operator=(const HasNewFatalFailureHelper&) = delete;
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(HasNewFatalFailureHelper);
 };
 
 }  // namespace internal

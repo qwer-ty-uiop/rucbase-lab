@@ -21,15 +21,18 @@ using namespace ast;
 %define parse.error verbose
 
 // keywords
-%token SHOW TABLES CREATE TABLE DROP DESC INSERT INTO VALUES DELETE FROM
-WHERE UPDATE SET SELECT INT CHAR FLOAT INDEX AND JOIN EXIT HELP TXN_BEGIN TXN_COMMIT TXN_ABORT TXN_ROLLBACK
+%token SHOW TABLES CREATE TABLE DROP DESC INSERT INTO VALUES DELETE FROM ASC ORDER BY
+WHERE UPDATE SET SELECT INT BIG_INT CHAR FLOAT DATETIME INDEX AND JOIN EXIT HELP TXN_BEGIN TXN_COMMIT TXN_ABORT TXN_ROLLBACK ORDER_BY
+AS SUM MAX MIN COUNT LIMIT LOAD SET_OFF
 // non-keywords
 %token LEQ NEQ GEQ T_EOF
 
 // type-specific tokens
-%token <sv_str> IDENTIFIER VALUE_STRING
+%token <sv_str> IDENTIFIER VALUE_STRING FILE_PATH
 %token <sv_int> VALUE_INT
+%token <sv_big_int> VALUE_BIG_INT
 %token <sv_float> VALUE_FLOAT
+%token <sv_datetime> VALUE_DATETIME
 
 // specify types for non-terminal symbol
 %type <sv_node> stmt dbStmt ddl dml txnStmt
@@ -38,16 +41,21 @@ WHERE UPDATE SET SELECT INT CHAR FLOAT INDEX AND JOIN EXIT HELP TXN_BEGIN TXN_CO
 %type <sv_type_len> type
 %type <sv_comp_op> op
 %type <sv_expr> expr
-%type <sv_val> value
+%type <sv_val> value limitClause
 %type <sv_vals> valueList
-%type <sv_str> tbName colName
-%type <sv_strs> tableList
+%type <sv_str> tbName colName filePath
+%type <sv_strs> tableList colNameList
 %type <sv_col> col
 %type <sv_cols> colList selector
 %type <sv_set_clause> setClause
 %type <sv_set_clauses> setClauses
 %type <sv_cond> condition
 %type <sv_conds> whereClause optWhereClause
+%type <sv_orderby>  order_clause 
+%type <sv_orderby_dir> opt_asc_desc
+%type <sv_orderbys> order_clause_list opt_order_clause
+%type <sv_agg_func> optAggFunc
+%type <sv_agg_funcs> optAggFuncList
 
 %%
 start:
@@ -78,6 +86,10 @@ stmt:
     |   ddl
     |   dml
     |   txnStmt
+    |   LOAD filePath INTO tbName
+    {
+        $$ = std::make_shared<LoadTable>($2, $4);
+    } 
     ;
 
 txnStmt:
@@ -93,7 +105,7 @@ txnStmt:
     {
         $$ = std::make_shared<TxnAbort>();
     }
-    | TXN_ROLLBACK
+    |   TXN_ROLLBACK
     {
         $$ = std::make_shared<TxnRollback>();
     }
@@ -119,13 +131,17 @@ ddl:
     {
         $$ = std::make_shared<DescTable>($2);
     }
-    |   CREATE INDEX tbName '(' colName ')'
+    |   CREATE INDEX tbName '(' colNameList ')'
     {
         $$ = std::make_shared<CreateIndex>($3, $5);
     }
-    |   DROP INDEX tbName '(' colName ')'
+    |   DROP INDEX tbName '(' colNameList ')'
     {
         $$ = std::make_shared<DropIndex>($3, $5);
+    }
+    |   SHOW INDEX FROM tbName
+    {
+        $$ = std::make_shared<ShowIndex>($4);
     }
     ;
 
@@ -142,9 +158,9 @@ dml:
     {
         $$ = std::make_shared<UpdateStmt>($2, $4, $5);
     }
-    |   SELECT selector FROM tableList optWhereClause
+    |   SELECT selector optAggFuncList FROM tableList optWhereClause opt_order_clause limitClause
     {
-        $$ = std::make_shared<SelectStmt>($2, $4, $5);
+        $$ = std::make_shared<SelectStmt>($2, $3, $5, $6, $7, $8);
     }
     ;
 
@@ -154,6 +170,17 @@ fieldList:
         $$ = std::vector<std::shared_ptr<Field>>{$1};
     }
     |   fieldList ',' field
+    {
+        $$.push_back($3);
+    }
+    ;
+
+colNameList:
+        colName
+    {
+        $$ = std::vector<std::string>{$1};
+    }
+    | colNameList ',' colName
     {
         $$.push_back($3);
     }
@@ -171,6 +198,10 @@ type:
     {
         $$ = std::make_shared<TypeLen>(SV_TYPE_INT, sizeof(int));
     }
+    |   BIG_INT
+    {
+        $$ = std::make_shared<TypeLen>(SV_TYPE_BIG_INT, sizeof(long long int));
+    }
     |   CHAR '(' VALUE_INT ')'
     {
         $$ = std::make_shared<TypeLen>(SV_TYPE_STRING, $3);
@@ -178,6 +209,10 @@ type:
     |   FLOAT
     {
         $$ = std::make_shared<TypeLen>(SV_TYPE_FLOAT, sizeof(float));
+    }
+    |   DATETIME
+    {
+        $$ = std::make_shared<TypeLen>(SV_TYPE_DATETIME, 19);
     }
     ;
 
@@ -197,6 +232,10 @@ value:
     {
         $$ = std::make_shared<IntLit>($1);
     }
+    |   VALUE_BIG_INT
+    {
+        $$ = std::make_shared<BigIntLit>($1);
+    }
     |   VALUE_FLOAT
     {
         $$ = std::make_shared<FloatLit>($1);
@@ -204,6 +243,10 @@ value:
     |   VALUE_STRING
     {
         $$ = std::make_shared<StringLit>($1);
+    }
+    |   VALUE_DATETIME
+    {
+        $$ = std::make_shared<DatetimeLit>($1);
     }
     ;
 
@@ -223,7 +266,7 @@ optWhereClause:
     ;
 
 whereClause:
-        condition
+        condition 
     {
         $$ = std::vector<std::shared_ptr<BinaryExpr>>{$1};
     }
@@ -309,6 +352,45 @@ setClause:
     {
         $$ = std::make_shared<SetClause>($1, $3);
     }
+    |   colName '=' colName value
+    {
+        $$ = std::make_shared<SetClause>($1, $4, true);
+    }
+    ;
+
+optAggFunc:
+        SUM '(' col ')' AS colName
+    {
+        $$ = std::make_shared<AggFunc>("SUM", $3, $6);
+    } 
+    |   MAX '(' col ')' AS colName
+    {
+        $$ = std::make_shared<AggFunc>("MAX", $3, $6);
+    }   
+    |   MIN '(' col ')' AS colName
+    {
+        $$ = std::make_shared<AggFunc>("MIN", $3, $6);
+    } 
+    |   COUNT '(' col ')' AS colName
+    {
+        $$ = std::make_shared<AggFunc>("COUNT", $3, $6);
+    }
+    |   COUNT '(' '*' ')' AS colName
+    {
+        $$ = std::make_shared<AggFunc>("COUNT", nullptr, $6);
+    }
+    |   /* epsilon */ { /* ignore*/ }
+    ;
+
+optAggFuncList:
+        optAggFunc
+    {
+        $$ = std::vector<std::shared_ptr<AggFunc>>{$1};
+    }
+    |   optAggFuncList ',' optAggFunc
+    {
+        $$.push_back($3);
+    }
     ;
 
 selector:
@@ -317,6 +399,10 @@ selector:
         $$ = {};
     }
     |   colList
+    {
+
+    }
+    |   /* epsilon */ { /* ignore*/ }
     ;
 
 tableList:
@@ -334,7 +420,59 @@ tableList:
     }
     ;
 
+opt_asc_desc:
+        ASC          
+    { 
+        $$ = OrderBy_ASC;     
+    }
+    |   DESC      
+    { 
+        $$ = OrderBy_DESC;    
+    }
+    |       
+    { 
+        $$ = OrderBy_DEFAULT; 
+    }
+    ;    
+
+order_clause:
+        col  opt_asc_desc 
+    { 
+        $$ = std::make_shared<OrderBy>($1, $2);
+    }
+    ;   
+
+order_clause_list:
+        order_clause
+    {
+        $$ = std::vector<std::shared_ptr<OrderBy>>{$1};
+    }
+    |   order_clause_list ',' order_clause
+    {
+        $$.push_back($3);
+    }
+    ;
+
+opt_order_clause:
+        ORDER BY order_clause_list
+    { 
+        $$ = $3;
+    }
+    |   /* epsilon */ { /* ignore*/ }
+    ;
+
+limitClause:
+        LIMIT value
+    {
+        $$ = $2;
+    }
+    |   /* epsilon */ { /* ignore*/ }
+    ;
+
 tbName: IDENTIFIER;
 
 colName: IDENTIFIER;
+
+filePath: FILE_PATH;
 %%
+

@@ -126,5 +126,5 @@ set(CMAKE_MAKEFILE_PRODUCTS
 
 # Dependency information for all targets:
 set(CMAKE_DEPEND_INFO_FILES
-  "CMakeFiles/rucbase_client.dir/DependInfo.cmake"
+  "CMakeFiles/rmdb_client.dir/DependInfo.cmake"
   )

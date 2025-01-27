@@ -82,9 +82,7 @@ macro(config_compiler_and_linker)
     # http://stackoverflow.com/questions/3232669 explains the issue.
     set(cxx_base_flags "${cxx_base_flags} -wd4702")
     # Ensure MSVC treats source files as UTF-8 encoded.
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-      set(cxx_base_flags "${cxx_base_flags} -utf-8")
-    endif()
+    set(cxx_base_flags "${cxx_base_flags} -utf-8")
   elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     set(cxx_base_flags "-Wall -Wshadow -Wconversion")
     set(cxx_exception_flags "-fexceptions")
@@ -162,8 +160,7 @@ function(cxx_library_with_type name type cxx_flags)
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
     ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
-    PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-    COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+    PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
   # make PDBs match library name
   get_target_property(pdb_debug_postfix ${name} DEBUG_POSTFIX)
   set_target_properties(${name}
@@ -192,7 +189,7 @@ function(cxx_library_with_type name type cxx_flags)
   endif()
 
   if (NOT "${CMAKE_VERSION}" VERSION_LESS "3.8")
-    target_compile_features(${name} PUBLIC cxx_std_14)
+    target_compile_features(${name} PUBLIC cxx_std_11)
   endif()
 endfunction()
 
@@ -244,12 +241,6 @@ function(cxx_executable name dir libs)
   cxx_executable_with_flags(
     ${name} "${cxx_default}" "${libs}" "${dir}/${name}.cc" ${ARGN})
 endfunction()
-
-# CMP0094 policy enables finding a Python executable in the LOCATION order, as
-# specified by the PATH environment variable.
-if (POLICY CMP0094)
-  cmake_policy(SET CMP0094 NEW)
-endif()
 
 # Sets PYTHONINTERP_FOUND and PYTHON_EXECUTABLE.
 if ("${CMAKE_VERSION}" VERSION_LESS "3.12.0")

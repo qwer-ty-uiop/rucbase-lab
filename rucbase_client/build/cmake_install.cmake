@@ -1,4 +1,4 @@
-# Install script for directory: /home/ty/code/rucbase-lab/rucbase_client
+# Install script for directory: /home/ty/code/db2024-5/rmdb_client
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -50,5 +50,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/ty/code/rucbase-lab/rucbase_client/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/ty/code/db2024-5/rmdb_client/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
