@@ -1,7 +1,6 @@
 set(SOURCES 
         disk_manager.cpp 
-        buffer_pool_manager.cpp 
-        ../replacer/replacer.h 
-        ../replacer/lru_replacer.cpp 
+        buffer_pool_manager.cpp
 )
 add_library(storage STATIC ${SOURCES})
+target_link_libraries(storage clock_replacer lru_replacer)

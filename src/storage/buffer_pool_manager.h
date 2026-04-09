@@ -20,6 +20,7 @@ See the Mulan PSL v2 for more details. */
 #include "disk_manager.h"
 #include "errors.h"
 #include "page.h"
+#include "replacer/clock_replacer.h"
 #include "replacer/lru_replacer.h"
 #include "replacer/replacer.h"
 

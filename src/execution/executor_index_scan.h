@@ -71,20 +71,26 @@ class IndexScanExecutor : public AbstractExecutor {
 
     void fill_up_info(std::string col_name, char* up_key, int offset, int len) {
         switch (tab_.get_col(col_name)->type) {
-            case TYPE_INT:
-                memcpy(up_key + offset, &INT_MAX, len);
+            case TYPE_INT: {
+                int int_max = INT_MAX;
+                memcpy(up_key + offset, &int_max, len);
                 break;
-            case TYPE_BIG_INT:
-                memcpy(up_key + offset, &BIG_INT_MAX, len);
+            }
+            case TYPE_BIG_INT: {
+                int64_t bigint_max = BIG_INT_MAX;
+                memcpy(up_key + offset, &bigint_max, len);
                 break;
-            case TYPE_FLOAT:
-                memcpy(up_key + offset, &FLOAT_MAX, len);
+            }
+            case TYPE_FLOAT: {
+                float float_max = FLOAT_MAX;
+                memcpy(up_key + offset, &float_max, len);
                 break;
+            }
             case TYPE_STRING:
                 memset(up_key + offset, 255, len);
                 break;
             case TYPE_DATETIME:
-                memcpy(up_key + offset, &DATETIME_MAX, len);
+                memcpy(up_key + offset, DATETIME_MAX, len);
                 break;
         }
     }
@@ -94,20 +100,26 @@ class IndexScanExecutor : public AbstractExecutor {
                        int offset,
                        int len) {
         switch (tab_.get_col(col_name)->type) {
-            case TYPE_INT:
-                memcpy(low_key + offset, &INT_MIN, len);
+            case TYPE_INT: {
+                int int_min = INT_MIN;
+                memcpy(low_key + offset, &int_min, len);
                 break;
-            case TYPE_BIG_INT:
-                memcpy(low_key + offset, &BIG_INT_MIN, len);
+            }
+            case TYPE_BIG_INT: {
+                int64_t bigint_min = BIG_INT_MIN;
+                memcpy(low_key + offset, &bigint_min, len);
                 break;
-            case TYPE_FLOAT:
-                memcpy(low_key + offset, &FLOAT_MIN, len);
+            }
+            case TYPE_FLOAT: {
+                float float_min = FLOAT_MIN;
+                memcpy(low_key + offset, &float_min, len);
                 break;
+            }
             case TYPE_STRING:
                 memset(low_key + offset, 0, len);
                 break;
             case TYPE_DATETIME:
-                memcpy(low_key + offset, &DATETIME_MIN, len);
+                memcpy(low_key + offset, DATETIME_MIN, len);
                 break;
         }
     }
