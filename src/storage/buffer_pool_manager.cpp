@@ -206,10 +206,27 @@ bool BufferPoolManager::delete_page(PageId page_id) {
         return false;
     }
 
-    disk_manager_->deallocate_page(page_id.page_no);
-    update_page(page, page_id, frame_id);
-    page_id.page_no = INVALID_PAGE_ID;
+    // 如果是脏页，写回磁盘
+    if (page->is_dirty()) {
+        disk_manager_->write_page(page_id.fd, page_id.page_no, page->get_data(), PAGE_SIZE);
+    }
+    
+    // 从页表中移除
+    page_table_.erase(it);
+    
+    // 重置页面元数据
+    page->reset_memory();
+    page->id_.fd = -1;
+    page->id_.page_no = INVALID_PAGE_ID;
+    page->is_dirty_ = false;
+    page->pin_count_ = 0;
+    
+    // 从replacer中移除（如果存在）
+    replacer_->pin(frame_id);
+    
+    // 加入空闲列表
     free_list_.push_back(frame_id);
+    
     return true;
 }
 

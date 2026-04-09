@@ -40,6 +40,11 @@ Rid RmFileHandle::insert_record(char* buf, Context* context) {
     // 在page handle中找到空闲slot位置
     int slot_no = Bitmap::first_bit(false, page_handle.bitmap,
                                     file_hdr_.num_records_per_page);
+    
+    // 边界检查：确保找到有效的slot
+    if (slot_no < 0 || slot_no >= file_hdr_.num_records_per_page) {
+        throw InternalError("RmFileHandle::insert_record: no available slot");
+    }
 
     // 将buf复制到空闲slot位置
     char* slot = page_handle.get_slot(slot_no);

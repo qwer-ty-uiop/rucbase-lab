@@ -11,6 +11,7 @@ See the Mulan PSL v2 for more details. */
 #pragma once
 
 #include "common/config.h"
+#include "common/rwlatch.h"
 
 /**
  * @description: 存储层每个Page的id的声明
@@ -87,4 +88,7 @@ class Page {
 
     /** The pin count of this page. */
     int pin_count_ = 0;
+
+    /** The latch for concurrent access to this page. */
+    ReaderWriterLatch rwlatch_;
 };

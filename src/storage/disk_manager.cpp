@@ -39,8 +39,10 @@ void DiskManager::write_page(int fd,
     // 注意write返回值与num_bytes不等时 throw
     // InternalError("DiskManager::write_page Error");
     lseek(fd, page_no * PAGE_SIZE, SEEK_SET);
-    if (write(fd, offset, num_bytes) < 0)
-        throw InternalError("DiskManager::write_page Error");
+    ssize_t bytes_written = write(fd, offset, num_bytes);
+    if (bytes_written != num_bytes) {
+        throw InternalError("DiskManager::write_page Error: incomplete write");
+    }
 }
 
 /**
@@ -60,8 +62,10 @@ void DiskManager::read_page(int fd,
     // 注意read返回值与num_bytes不等时，throw
     // InternalError("DiskManager::read_page Error");
     lseek(fd, page_no * PAGE_SIZE, SEEK_SET);
-    if (read(fd, offset, num_bytes) < 0)
-        throw InternalError("DiskManager::read_page Error");
+    ssize_t bytes_read = read(fd, offset, num_bytes);
+    if (bytes_read != num_bytes) {
+        throw InternalError("DiskManager::read_page Error: incomplete read");
+    }
 }
 
 /**
@@ -120,7 +124,11 @@ void DiskManager::create_file(const std::string& path) {
     if (is_file(path)) {
         throw FileExistsError(path);
     }
-    open(path.c_str(), O_CREAT, 0777);
+    int fd = open(path.c_str(), O_CREAT | O_RDWR, 0777);
+    if (fd < 0) {
+        throw UnixError();
+    }
+    close(fd);
 }
 
 /**
@@ -135,9 +143,10 @@ void DiskManager::destroy_file(const std::string& path) {
         throw FileNotFoundError(path);
     }
     if (path2fd_.find(path) == path2fd_.end()) {
-        unlink(path.c_str());
+        // 先从内存数据结构中移除，再删除物理文件
         fd2path_.erase(path2fd_[path]);
         path2fd_.erase(path);
+        unlink(path.c_str());
     } else
         throw UnixError();
 }
@@ -153,12 +162,19 @@ int DiskManager::open_file(const std::string& path) {
     // 注意不能重复打开相同文件，并且需要更新文件打开列表
     if (!is_file(path))
         throw FileNotFoundError(path);
-    int fd = -1;
-    if (path2fd_.find(path) == path2fd_.end()) {
-        fd = open(path.c_str(), O_RDWR);
-        path2fd_[path] = fd;
-        fd2path_[fd] = path;
+    
+    // 如果文件已经打开，直接返回已有的fd
+    if (path2fd_.find(path) != path2fd_.end()) {
+        return path2fd_[path];
     }
+    
+    // 文件未打开，打开并记录
+    int fd = open(path.c_str(), O_RDWR);
+    if (fd < 0) {
+        throw UnixError();
+    }
+    path2fd_[path] = fd;
+    fd2path_[fd] = path;
     return fd;
 }
 
