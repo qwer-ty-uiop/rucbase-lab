@@ -1,2 +1,75 @@
+# RucBase 项目 .gitignore 文件
+
+# 编译生成的文件和目录
 build/
+build-*/
+bin/
+lib/
+*.o
+*.obj
+*.so
+*.dll
+*.lib
+*.a
+*.out
+*.exe
+*.pdb
+
+# 编辑器和IDE相关文件
 .vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 系统和环境文件
+.DS_Store
+Thumbs.db
+
+# 测试和日志文件
+*.log
+*.txt
+*.md
+*.rst
+test_db/
+test_*
+
+# 依赖库和第三方文件
+deps/
+third_party/
+external/
+
+# 临时文件
+*.tmp
+*.temp
+.cache/
+
+# 配置文件
+.env
+*.ini
+*.cfg
+
+# 备份文件
+*.bak
+*.backup
+
+# 核心转储文件
+core
+core.*
+
+# 代码分析工具
+.clangd/
+compile_commands.json
+
+# 版本控制文件
+.git/
+.gitignore
+
+# 数据库相关文件
+*.idx
+*.db
+*.wal
+*.log
+
+# 客户端相关
+rucbase_client/build/
