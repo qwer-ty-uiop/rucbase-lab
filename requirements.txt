@@ -1,0 +1,178 @@
+# JOIN功能需求文档
+
+## 1. 功能概述
+
+实现完整的SQL JOIN功能，支持以下JOIN类型：
+- INNER JOIN（内连接）
+- LEFT JOIN（左外连接）
+- RIGHT JOIN（右外连接）
+- 支持ON条件表达式
+
+## 2. 功能需求
+
+### 2.1 支持的JOIN类型
+
+#### 2.1.1 INNER JOIN
+```sql
+SELECT * FROM t1 INNER JOIN t2 ON t1.id = t2.id;
+SELECT * FROM t1 JOIN t2 ON t1.id = t2.id;  -- INNER可省略
+```
+
+#### 2.1.2 LEFT JOIN
+```sql
+SELECT * FROM t1 LEFT JOIN t2 ON t1.id = t2.id;
+SELECT * FROM t1 LEFT OUTER JOIN t2 ON t1.id = t2.id;  -- OUTER可省略
+```
+
+#### 2.1.3 RIGHT JOIN
+```sql
+SELECT * FROM t1 RIGHT JOIN t2 ON t1.id = t2.id;
+SELECT * FROM t1 RIGHT OUTER JOIN t2 ON t1.id = t2.id;  -- OUTER可省略
+```
+
+### 2.2 ON条件支持
+
+支持在ON子句中使用以下表达式：
+- 比较运算符：=, <, >, <=, >=, <>
+- 逻辑运算符：AND, OR, NOT
+- 字段引用：t1.id, t2.name
+
+### 2.3 多表JOIN
+
+支持多表连接：
+```sql
+SELECT * FROM t1 
+INNER JOIN t2 ON t1.id = t2.id 
+LEFT JOIN t3 ON t2.id = t3.id;
+```
+
+## 3. 技术需求
+
+### 3.1 词法分析器（Lexer）
+
+**文件**: `src/parser/lex.l`
+
+**需求**:
+- 已添加关键字：LEFT, RIGHT, INNER, ON
+- 需要添加关键字：OUTER（可选）
+
+### 3.2 语法分析器（Parser）
+
+**文件**: `src/parser/yacc.y`
+
+**需求**:
+- 修改`tableList`规则，支持JOIN类型和ON条件
+- 创建新的语法规则`joinClause`
+- 支持JOIN表达式的解析
+
+### 3.3 抽象语法树（AST）
+
+**文件**: `src/parser/ast.h`
+
+**需求**:
+- 确保`JoinExpr`结构支持JOIN类型
+- 添加JOIN条件字段
+- 支持ON条件表达式
+
+### 3.4 执行器
+
+**文件**: `src/execution/executor_nlj.h/cpp`
+
+**需求**:
+- 实现INNER JOIN逻辑
+- 实现LEFT JOIN逻辑
+- 实现RIGHT JOIN逻辑
+- 支持ON条件过滤
+
+### 3.5 查询优化器
+
+**文件**: `src/optimizer/planner.cpp`
+
+**需求**:
+- 支持JOIN条件的语义分析
+- 生成正确的执行计划
+
+## 4. 接口需求
+
+### 4.1 SQL接口
+
+用户通过SQL语句使用JOIN功能：
+```sql
+SELECT columns FROM table1 
+[INNER|LEFT|RIGHT] JOIN table2 ON condition
+[INNER|LEFT|RIGHT] JOIN table3 ON condition ...;
+```
+
+### 4.2 API接口
+
+内部API需要支持：
+- JOIN类型枚举
+- JOIN条件表达式
+- 多表JOIN链
+
+## 5. 性能需求
+
+### 5.1 基本性能
+- 小表JOIN（<1000行）：响应时间 < 100ms
+- 中等表JOIN（1000-10000行）：响应时间 < 1s
+- 大表JOIN（>10000行）：响应时间 < 10s
+
+### 5.2 优化需求
+- 支持索引加速JOIN
+- 支持JOIN顺序优化
+- 支持JOIN条件过滤优化
+
+## 6. 兼容性需求
+
+### 6.1 SQL标准兼容
+- 遵循SQL-92标准的JOIN语法
+- 支持标准JOIN语义
+
+### 6.2 向后兼容
+- 保持现有简单JOIN功能
+- 不影响现有查询的执行
+
+## 7. 测试需求
+
+### 7.1 单元测试
+- 测试各种JOIN类型
+- 测试ON条件表达式
+- 测试多表JOIN
+
+### 7.2 集成测试
+- 测试JOIN与其他SQL功能的组合
+- 测试JOIN性能
+
+### 7.3 边界测试
+- 空表JOIN
+- 自连接
+- 无匹配记录的JOIN
+
+## 8. 文档需求
+
+### 8.1 用户文档
+- JOIN语法说明
+- 使用示例
+- 性能建议
+
+### 8.2 开发文档
+- 实现原理说明
+- 代码结构说明
+- 扩展指南
+
+## 9. 交付物
+
+1. 完整的JOIN功能实现
+2. 单元测试代码
+3. 集成测试用例
+4. 用户文档
+5. 开发文档
+
+## 10. 验收标准
+
+1. 所有JOIN类型正常工作
+2. ON条件正确过滤
+3. 多表JOIN正确执行
+4. 性能满足要求
+5. 测试覆盖率 > 80%
+6. 文档完整清晰

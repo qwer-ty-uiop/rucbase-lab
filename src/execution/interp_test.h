@@ -63,7 +63,8 @@ class InterpForTest {
                 if (auto sv_col_def = std::dynamic_pointer_cast<ast::ColDef>(field)) {
                     ColDef col_def = {.name = sv_col_def->col_name,
                                       .type = interp_sv_type(sv_col_def->type_len->type),
-                                      .len = sv_col_def->type_len->len};
+                                      .len = sv_col_def->type_len->len,
+                                      .is_primary = sv_col_def->is_primary};
                     col_defs.push_back(col_def);
                 } else {
                     throw InternalError("Unexpected field type");

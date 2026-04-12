@@ -111,3 +111,14 @@ struct AggFunc {
     TabCol col;
     std::string new_col_name;
 };
+
+enum JoinType {
+    INNER_JOIN, LEFT_JOIN, RIGHT_JOIN, FULL_JOIN
+};
+
+struct JoinCondition {
+    std::string left_table;
+    std::string right_table;
+    std::vector<Condition> conds;
+    JoinType type;
+};

@@ -12,10 +12,8 @@ See the Mulan PSL v2 for more details. */
 #include <vector>
 #include <string>
 #include <memory>
+#include "common/common.h"
 
-enum JoinType {
-    INNER_JOIN, LEFT_JOIN, RIGHT_JOIN, FULL_JOIN
-};
 namespace ast {
 
 enum SvType {
@@ -68,9 +66,10 @@ struct Field : public TreeNode {
 struct ColDef : public Field {
     std::string col_name;
     std::shared_ptr<TypeLen> type_len;
+    bool is_primary;
 
-    ColDef(std::string col_name_, std::shared_ptr<TypeLen> type_len_) :
-            col_name(std::move(col_name_)), type_len(std::move(type_len_)) {}
+    ColDef(std::string col_name_, std::shared_ptr<TypeLen> type_len_, bool is_primary_ = false) :
+            col_name(std::move(col_name_)), type_len(std::move(type_len_)), is_primary(is_primary_) {}
 };
 
 struct CreateTable : public TreeNode {
@@ -234,6 +233,15 @@ struct JoinExpr : public TreeNode {
             left(std::move(left_)), right(std::move(right_)), conds(std::move(conds_)), type(type_) {}
 };
 
+struct FromClause : public TreeNode {
+    std::vector<std::string> tabs;
+    std::vector<std::shared_ptr<JoinExpr>> jointree;
+
+    FromClause() = default;
+    FromClause(std::vector<std::string> tabs_, std::vector<std::shared_ptr<JoinExpr>> jointree_) :
+            tabs(std::move(tabs_)), jointree(std::move(jointree_)) {}
+};
+
 struct AggFunc : public TreeNode {
     std::string func_name;
     std::shared_ptr<Col> col;
@@ -259,10 +267,11 @@ struct SelectStmt : public TreeNode {
                std::vector<std::shared_ptr<AggFunc>> agg_funcs_,
                std::vector<std::string> tabs_,
                std::vector<std::shared_ptr<BinaryExpr>> conds_,
+               std::vector<std::shared_ptr<JoinExpr>> jointree_,
                std::vector<std::shared_ptr<OrderBy>> order_bys_,
                std::shared_ptr<Value> limit_num_) :
-            cols(std::move(cols_)), agg_funcs(std::move(agg_funcs_)), tabs(std::move(tabs_)), conds(std::move(conds_)), 
-            order_bys(std::move(order_bys_)) {
+            cols(std::move(cols_)), agg_funcs(std::move(agg_funcs_)), tabs(std::move(tabs_)), conds(std::move(conds_)),
+            jointree(std::move(jointree_)), order_bys(std::move(order_bys_)) {
                 if (order_bys.empty()) {
                     has_sort = false;
                 } else {
@@ -314,6 +323,11 @@ struct SemValue {
 
     std::shared_ptr<AggFunc> sv_agg_func;
     std::vector<std::shared_ptr<AggFunc>> sv_agg_funcs;
+
+    std::shared_ptr<JoinExpr> sv_join_expr;
+    std::vector<std::shared_ptr<JoinExpr>> sv_join_exprs;
+    
+    std::shared_ptr<FromClause> sv_from_clause;
 };
 
 extern std::shared_ptr<ast::TreeNode> parse_tree;

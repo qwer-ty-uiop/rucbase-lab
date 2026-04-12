@@ -215,15 +215,22 @@ void SmManager::create_table(const std::string& tab_name,
     int curr_offset = 0;
     TabMeta tab;
     tab.name = tab_name;
+    std::vector<std::string> primary_keys;  // 存储主键列名
+    
     for (auto& col_def : col_defs) {
         ColMeta col = {.tab_name = tab_name,
                        .name = col_def.name,
                        .type = col_def.type,
                        .len = col_def.len,
                        .offset = curr_offset,
-                       .index = false};
+                       .index = col_def.is_primary};  // 使用is_primary字段
         curr_offset += col_def.len;
         tab.cols.push_back(col);
+        
+        // 如果是主键，记录下来
+        if (col_def.is_primary) {
+            primary_keys.push_back(col_def.name);
+        }
     }
     // Create & open record file
     int record_size =
@@ -233,6 +240,11 @@ void SmManager::create_table(const std::string& tab_name,
     db_.tabs_[tab_name] = tab;
     // fhs_[tab_name] = rm_manager_->open_file(tab_name);
     fhs_.emplace(tab_name, rm_manager_->open_file(tab_name));
+    
+    // 为主键创建索引
+    if (!primary_keys.empty()) {
+        create_index(tab_name, primary_keys, context);
+    }
 
     flush_meta();
 }

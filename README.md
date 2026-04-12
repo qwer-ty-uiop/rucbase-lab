@@ -55,182 +55,21 @@ rucbase-lab/
 └── README.md            # 项目文档
 ```
 
-## 🎯 功能模块详解
+## 📖 模块文档
 
-### 1. 存储管理 (Storage)
+每个模块都有详细的实现文档，位于对应模块目录下：
 
-#### 功能概述
-负责数据库的物理存储，包括磁盘文件管理、页面管理和缓冲池管理。
-
-#### 核心组件
-- **DiskManager**: 管理磁盘文件的读写操作
-- **BufferPoolManager**: 管理内存中的页面缓存
-- **Page**: 数据页的抽象，4KB固定大小
-
-#### 关键实现
-- 页面分配与回收
-- 脏页写回机制
-- 并发控制支持
-
-#### 代码示例
-```cpp
-// 从缓冲池获取页面
-Page* page = buffer_pool_manager->fetch_page(page_id);
-// 修改页面内容
-memcpy(page->get_data(), data, PAGE_SIZE);
-// 标记为脏页
-page->is_dirty_ = true;
-// 释放页面
-buffer_pool_manager->unpin_page(page_id, true);
-```
-
-### 2. 替换策略 (Replacer)
-
-#### 功能概述
-实现缓冲区页面的替换算法，当缓冲池满时选择淘汰页面。
-
-#### 核心算法
-- **LRU (Least Recently Used)**: 最近最少使用算法
-- **Clock**: 时钟算法（二次机会算法）
-
-#### 实现原理
-- LRU: 使用双向链表+哈希表，O(1)时间复杂度
-- Clock: 使用环形缓冲区，减少内存开销
-
-### 3. 记录管理 (Record)
-
-#### 功能概述
-管理表中的记录，包括记录的插入、删除、更新和扫描。
-
-#### 核心组件
-- **RmFileHandle**: 管理文件级别的记录操作
-- **RmScan**: 记录扫描器
-- **Bitmap**: 管理记录的空闲空间
-
-#### 实现原理
-- 定长记录存储
-- 页内记录组织
-- 空间管理（Bitmap）
-
-### 4. 索引管理 (Index)
-
-#### 功能概述
-实现B+树索引，加速数据查询。
-
-#### 核心组件
-- **IxIndexHandle**: B+树索引管理
-- **IxNodeHandle**: 节点操作
-- **IxScan**: 索引扫描
-
-#### 实现原理
-- B+树数据结构
-- 节点分裂与合并
-- 并发控制
-
-#### 代码示例
-```cpp
-// 创建索引
-ix_manager->create_index("student", {id_col});
-// 插入索引项
-index_handle->insert_entry(key, rid, txn);
-// 查找
-std::vector<Rid> results;
-index_handle->get_value(key, &results, txn);
-```
-
-### 5. 事务管理 (Transaction)
-
-#### 功能概述
-管理数据库事务，确保ACID特性。
-
-#### 核心组件
-- **TransactionManager**: 事务生命周期管理
-- **LockManager**: 并发控制锁管理
-
-#### 实现原理
-- 两阶段封锁协议 (2PL)
-- 死锁检测与预防
-- 行级锁、表级锁、意向锁
-
-### 6. 故障恢复 (Recovery)
-
-#### 功能概述
-实现数据库的故障恢复机制。
-
-#### 核心组件
-- **LogManager**: 日志管理
-- **LogRecovery**: 恢复算法
-
-#### 实现原理
-- WAL (Write-Ahead Logging)
-- ARIES 恢复算法
-- 检查点机制
-
-### 7. 查询执行 (Execution)
-
-#### 功能概述
-执行SQL查询，包括扫描、连接、排序等操作。
-
-#### 核心算子
-- **SeqScan**: 顺序扫描
-- **IndexScan**: 索引扫描
-- **NestedLoopJoin**: 嵌套循环连接
-- **Projection**: 投影
-- **Insert/Delete/Update**: 数据修改
-
-#### 实现原理
-- 火山模型 (Volcano Model)
-- 迭代器模式
-- 流水线执行
-
-### 8. SQL解析 (Parser)
-
-#### 功能概述
-解析SQL语句，生成抽象语法树。
-
-#### 核心组件
-- **Lexer**: 词法分析
-- **Parser**: 语法分析
-- **AST**: 抽象语法树
-
-#### 实现原理
-- Flex 词法分析器
-- Bison 语法分析器
-- 递归下降解析
-
-### 9. 语义分析 (Analyze)
-
-#### 功能概述
-对SQL语句进行语义检查和类型推断。
-
-#### 核心功能
-- 表和列的存在性检查
-- 类型兼容性检查
-- 表达式求值
-
-### 10. 查询优化 (Optimizer)
-
-#### 功能概述
-生成最优执行计划。
-
-#### 核心功能
-- 基于规则的优化
-- 执行计划生成
-- 成本估算
-
-### 11. 系统管理 (System)
-
-#### 功能概述
-管理数据库、表、索引等元数据。
-
-#### 核心组件
-- **SmManager**: 系统管理器
-- **DbMeta/TabMeta/ColMeta**: 元数据结构
-
-#### 实现原理
-- 元数据存储与管理
-- 目录结构维护
-- 系统目录表
+- **存储管理**: `src/storage/README.md` - 磁盘管理、缓冲池管理、页面管理
+- **替换策略**: `src/replacer/README.md` - LRU和Clock算法实现
+- **记录管理**: `src/record/README.md` - 记录存储和扫描
+- **索引管理**: `src/index/README.md` - B+树索引实现
+- **事务管理**: `src/transaction/README.md` - 事务和并发控制
+- **故障恢复**: `src/recovery/README.md` - 日志和恢复机制
+- **查询执行**: `src/execution/README.md` - 查询执行引擎
+- **SQL解析**: `src/parser/README.md` - SQL语法解析
+- **语义分析**: `src/analyze/README.md` - 语义检查和类型推断
+- **查询优化**: `src/optimizer/README.md` - 查询计划优化
+- **系统管理**: `src/system/README.md` - 元数据管理
 
 ## 🛠️ 环境配置
 

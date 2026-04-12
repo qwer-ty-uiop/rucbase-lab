@@ -82,11 +82,20 @@ single_op ";"|"("|")"|","|"*"|"="|">"|"<"|"."
 "INT" { return INT; }
 "BIGINT" { return BIG_INT; }
 "CHAR" { return CHAR; }
+"VARCHAR" { return VARCHAR; }
 "FLOAT" { return FLOAT; }
 "DATETIME" { return DATETIME; }
 "INDEX" { return INDEX; }
+"PRIMARY" { return PRIMARY; }
+"KEY" { return KEY; }
 "AND" { return AND; }
 "JOIN" {return JOIN;}
+"LEFT" { return LEFT; }
+"RIGHT" { return RIGHT; }
+"INNER" { return INNER; }
+"OUTER" { return OUTER; }
+"CROSS" { return CROSS; }
+"ON" { return ON; }
 "EXIT" { return EXIT; }
 "HELP" { return HELP; }
 "ORDER" { return ORDER; }

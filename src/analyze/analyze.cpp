@@ -23,7 +23,7 @@ std::shared_ptr<Query> Analyze::do_analyze(std::shared_ptr<ast::TreeNode> parse)
         // 处理表名
         querytable->tables = std::move(x->tabs);
         /** TODO: 检查表是否存在 */
-        for (const auto tabName : x->tabs) {
+        for (const auto &tabName : x->tabs) {
             if (!(sm_manager_->db_.is_table(tabName))) {
                 throw TableNotFoundError(tabName);
             }
@@ -74,6 +74,17 @@ std::shared_ptr<Query> Analyze::do_analyze(std::shared_ptr<ast::TreeNode> parse)
         //处理where条件
         get_clause(x->conds, querytable->conds);
         check_clause(querytable->tables, querytable->conds);
+
+        // 处理jointree
+        for (const auto &join_expr : x->jointree) {
+            JoinCondition join_cond;
+            join_cond.left_table = join_expr->left;
+            join_cond.right_table = join_expr->right;
+            join_cond.type = join_expr->type;
+            get_clause(join_expr->conds, join_cond.conds);
+            querytable->jointree.push_back(join_cond);
+        }
+        check_join_clause(querytable->tables, querytable->jointree);
 
         // handle LIMIT
         querytable->limit_num = x->limit_num;
@@ -224,6 +235,12 @@ void Analyze::check_clause(const std::vector<std::string>& tableNames, std::vect
         if (lhsType != rhsType) {
             performTypeConversion(condition, lhsType, rhsType);
         }
+    }
+}
+
+void Analyze::check_join_clause(const std::vector<std::string>& tableNames, std::vector<JoinCondition>& join_conds) {
+    for (auto& join_cond : join_conds) {
+        check_clause(tableNames, join_cond.conds);
     }
 }
 

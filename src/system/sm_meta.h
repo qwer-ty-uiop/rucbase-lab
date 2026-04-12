@@ -13,6 +13,7 @@ See the Mulan PSL v2 for more details. */
 #include <algorithm>
 #include <iostream>
 #include <map>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -79,18 +80,24 @@ struct IndexMeta {
         return offset;
     }
 
-    void get_key(const RmRecord* rec,char * key){
+    void get_key(const RmRecord* rec, char* key) {
+        if (!rec || !key) {
+            throw std::invalid_argument("Null pointer argument");
+        }
         int offset = 0;
-        for(size_t j = 0; j < (size_t)col_num; ++j) {
-            memcpy(key + offset, rec->data + cols[j].offset, cols[j].len);
+        for (size_t j = 0; j < static_cast<size_t>(col_num); ++j) {
+            std::copy_n(rec->data + cols[j].offset, cols[j].len, key + offset);
             offset += cols[j].len;
         }
     }
     
-     void get_key(const char* rec_data,char * key){
+    void get_key(const char* rec_data, char* key) {
+        if (!rec_data || !key) {
+            throw std::invalid_argument("Null pointer argument");
+        }
         int offset = 0;
-        for(size_t j = 0; j < (size_t)col_num; ++j) {
-            memcpy(key + offset, rec_data + cols[j].offset, cols[j].len);
+        for (size_t j = 0; j < static_cast<size_t>(col_num); ++j) {
+            std::copy_n(rec_data + cols[j].offset, cols[j].len, key + offset);
             offset += cols[j].len;
         }
     }

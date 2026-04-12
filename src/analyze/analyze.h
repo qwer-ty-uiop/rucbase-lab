@@ -23,18 +23,12 @@ See the Mulan PSL v2 for more details. */
 class Query{
     public:
     std::shared_ptr<ast::TreeNode> parse;
-    // TODO jointree
-    // where条件
+    std::vector<JoinCondition> jointree;
     std::vector<Condition> conds;
-    // 投影列
     std::vector<TabCol> cols;
-    // 表名
     std::vector<std::string> tables;
-    // update 的set 值
     std::vector<SetClause> set_clauses;
-    //insert 的values值
     std::vector<Value> values;
-    // 聚合函数信息
     std::vector<AggFunc> agg_funcs;
 
     int limit_num;
@@ -57,6 +51,7 @@ private:
     void get_all_cols(const std::vector<std::string> &tab_names, std::vector<ColMeta> &all_cols);
     void get_clause(const std::vector<std::shared_ptr<ast::BinaryExpr>> &sv_conds, std::vector<Condition> &conds);
     void check_clause(const std::vector<std::string> &tab_names, std::vector<Condition> &conds);
+    void check_join_clause(const std::vector<std::string> &tab_names, std::vector<JoinCondition> &join_conds);
     Value convert_sv_value(const std::shared_ptr<ast::Value> &sv_val);
     CompOp convert_sv_comp_op(ast::SvCompOp op);
     void performTypeConversion(Condition &condition, ColType lhsType, ColType rhsType);

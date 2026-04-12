@@ -35,8 +35,8 @@
    especially those whose name start with YY_ or yy_.  They are
    private implementation details that can be changed or removed.  */
 
-#ifndef YY_YY_HOME_SOFTRAIN_202310013992021_2899_SRC_PARSER_YACC_TAB_H_INCLUDED
-# define YY_YY_HOME_SOFTRAIN_202310013992021_2899_SRC_PARSER_YACC_TAB_H_INCLUDED
+#ifndef YY_YY_MNT_E_CODE_PROJECT_RUCBASE_LAB_SRC_PARSER_YACC_TAB_H_INCLUDED
+# define YY_YY_MNT_E_CODE_PROJECT_RUCBASE_LAB_SRC_PARSER_YACC_TAB_H_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -75,37 +75,46 @@ extern int yydebug;
     INT = 276,                     /* INT  */
     BIG_INT = 277,                 /* BIG_INT  */
     CHAR = 278,                    /* CHAR  */
-    FLOAT = 279,                   /* FLOAT  */
-    DATETIME = 280,                /* DATETIME  */
-    INDEX = 281,                   /* INDEX  */
-    AND = 282,                     /* AND  */
-    JOIN = 283,                    /* JOIN  */
-    EXIT = 284,                    /* EXIT  */
-    HELP = 285,                    /* HELP  */
-    TXN_BEGIN = 286,               /* TXN_BEGIN  */
-    TXN_COMMIT = 287,              /* TXN_COMMIT  */
-    TXN_ABORT = 288,               /* TXN_ABORT  */
-    TXN_ROLLBACK = 289,            /* TXN_ROLLBACK  */
-    ORDER_BY = 290,                /* ORDER_BY  */
-    AS = 291,                      /* AS  */
-    SUM = 292,                     /* SUM  */
-    MAX = 293,                     /* MAX  */
-    MIN = 294,                     /* MIN  */
-    COUNT = 295,                   /* COUNT  */
-    LIMIT = 296,                   /* LIMIT  */
-    LOAD = 297,                    /* LOAD  */
-    SET_OFF = 298,                 /* SET_OFF  */
-    LEQ = 299,                     /* LEQ  */
-    NEQ = 300,                     /* NEQ  */
-    GEQ = 301,                     /* GEQ  */
-    T_EOF = 302,                   /* T_EOF  */
-    IDENTIFIER = 303,              /* IDENTIFIER  */
-    VALUE_STRING = 304,            /* VALUE_STRING  */
-    FILE_PATH = 305,               /* FILE_PATH  */
-    VALUE_INT = 306,               /* VALUE_INT  */
-    VALUE_BIG_INT = 307,           /* VALUE_BIG_INT  */
-    VALUE_FLOAT = 308,             /* VALUE_FLOAT  */
-    VALUE_DATETIME = 309           /* VALUE_DATETIME  */
+    VARCHAR = 279,                 /* VARCHAR  */
+    FLOAT = 280,                   /* FLOAT  */
+    DATETIME = 281,                /* DATETIME  */
+    INDEX = 282,                   /* INDEX  */
+    AND = 283,                     /* AND  */
+    JOIN = 284,                    /* JOIN  */
+    EXIT = 285,                    /* EXIT  */
+    HELP = 286,                    /* HELP  */
+    TXN_BEGIN = 287,               /* TXN_BEGIN  */
+    TXN_COMMIT = 288,              /* TXN_COMMIT  */
+    TXN_ABORT = 289,               /* TXN_ABORT  */
+    TXN_ROLLBACK = 290,            /* TXN_ROLLBACK  */
+    ORDER_BY = 291,                /* ORDER_BY  */
+    AS = 292,                      /* AS  */
+    SUM = 293,                     /* SUM  */
+    MAX = 294,                     /* MAX  */
+    MIN = 295,                     /* MIN  */
+    COUNT = 296,                   /* COUNT  */
+    LIMIT = 297,                   /* LIMIT  */
+    LOAD = 298,                    /* LOAD  */
+    SET_OFF = 299,                 /* SET_OFF  */
+    PRIMARY = 300,                 /* PRIMARY  */
+    KEY = 301,                     /* KEY  */
+    LEFT = 302,                    /* LEFT  */
+    RIGHT = 303,                   /* RIGHT  */
+    INNER = 304,                   /* INNER  */
+    OUTER = 305,                   /* OUTER  */
+    CROSS = 306,                   /* CROSS  */
+    ON = 307,                      /* ON  */
+    LEQ = 308,                     /* LEQ  */
+    NEQ = 309,                     /* NEQ  */
+    GEQ = 310,                     /* GEQ  */
+    T_EOF = 311,                   /* T_EOF  */
+    IDENTIFIER = 312,              /* IDENTIFIER  */
+    VALUE_STRING = 313,            /* VALUE_STRING  */
+    FILE_PATH = 314,               /* FILE_PATH  */
+    VALUE_INT = 315,               /* VALUE_INT  */
+    VALUE_BIG_INT = 316,           /* VALUE_BIG_INT  */
+    VALUE_FLOAT = 317,             /* VALUE_FLOAT  */
+    VALUE_DATETIME = 318           /* VALUE_DATETIME  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -132,5 +141,4 @@ struct YYLTYPE
 int yyparse (void);
 
 
-#endif /* !YY_YY_HOME_SOFTRAIN_202310013992021_2899_SRC_PARSER_YACC_TAB_H_INCLUDED  */
-
+#endif /* !YY_YY_MNT_E_CODE_PROJECT_RUCBASE_LAB_SRC_PARSER_YACC_TAB_H_INCLUDED  */

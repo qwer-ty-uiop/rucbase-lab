@@ -17,28 +17,32 @@ See the Mulan PSL v2 for more details. */
 
 class NestedLoopJoinExecutor : public AbstractExecutor {
    private:
-    std::unique_ptr<AbstractExecutor> left_;   // 左儿子节点（需要join的表）
-    std::unique_ptr<AbstractExecutor> right_;  // 右儿子节点（需要join的表）
-    size_t len_;                               // join后获得的每条记录的长度
-    std::vector<ColMeta> cols_;                // join后获得的记录的字段
+    std::unique_ptr<AbstractExecutor> left_;
+    std::unique_ptr<AbstractExecutor> right_;
+    size_t len_;
+    std::vector<ColMeta> cols_;
 
-    std::vector<Condition> fed_conds_;  // join条件
+    std::vector<Condition> fed_conds_;
     bool isend;
 
     std::map<TabCol, Value> prev_feed_dict_;
 
-    std::vector<std::unique_ptr<RmRecord>> join_buffer_;
-    size_t join_buffer_idx_;                     // current index of join_buffer
-    std::unique_ptr<RmRecord> cur_right_record;  // current record of the left table
-
-    std::vector<std::unique_ptr<RmRecord>> tuple_buffer_;
+    std::vector<std::unique_ptr<RmRecord>> left_buffer_;
+    size_t left_idx_;
+    std::unique_ptr<RmRecord> cur_right_record;
 
     std::vector<ColMeta> conds_col_type;
+    
+    JoinType join_type_;
+    std::vector<bool> left_matched_;
+    std::unique_ptr<RmRecord> null_right_record_;
+    bool emitting_null_records_;
+    size_t null_emit_idx_;
 
    public:
-    NestedLoopJoinExecutor(std::unique_ptr<AbstractExecutor> left, std::unique_ptr<AbstractExecutor> right, std::vector<Condition> conds) {
+    NestedLoopJoinExecutor(std::unique_ptr<AbstractExecutor> left, std::unique_ptr<AbstractExecutor> right, 
+                           std::vector<Condition> conds, JoinType join_type = INNER_JOIN) {
         left_ = std::move(left);
-
         right_ = std::move(right);
         len_ = left_->tupleLen() + right_->tupleLen();
         cols_ = left_->cols();
@@ -46,10 +50,12 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
         for (auto& col : right_cols) {
             col.offset += left_->tupleLen();
         }
-
         cols_.insert(cols_.end(), right_cols.begin(), right_cols.end());
         isend = false;
         fed_conds_ = std::move(conds);
+        join_type_ = join_type;
+        emitting_null_records_ = false;
+        null_emit_idx_ = 0;
 
         for (auto cond : fed_conds_) {
             if (!cond.is_rhs_val && cond.rhs_col.tab_name != left_->get_tab_name()) {
@@ -61,77 +67,95 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
                 }
             }
         }
+        
+        null_right_record_ = std::make_unique<RmRecord>(right_->tupleLen());
+        memset(null_right_record_->data, 0, right_->tupleLen());
     }
 
     void beginTuple() override {
-        right_->beginTuple();
-        if (right_->is_end()) {
-            return;
-        }
-        cur_right_record = right_->Next();
-
         left_->beginTuple();
         if (left_->is_end()) {
             return;
         }
-
-        join_buffer_.clear();
-        while (!left_->is_end() && join_buffer_.size() < 30000) {
-            join_buffer_.push_back(std::move(left_->Next()));
+        
+        left_buffer_.clear();
+        left_matched_.clear();
+        while (!left_->is_end()) {
+            left_buffer_.push_back(std::move(left_->Next()));
+            left_matched_.push_back(false);
             left_->nextTuple();
         }
-        join_buffer_idx_ = 0;
-
-        nextTuple();
+        left_idx_ = 0;
+        
+        right_->beginTuple();
+        if (right_->is_end()) {
+            if (join_type_ == LEFT_JOIN && !left_buffer_.empty()) {
+                emitting_null_records_ = true;
+                null_emit_idx_ = 0;
+            }
+            return;
+        }
+        cur_right_record = right_->Next();
     }
 
     void nextTuple() override {
-        while (!join_buffer_.empty()) {
-            auto right_record = cur_right_record.get();
-
-            // Iterate through join buffer to find matching records
-            while (join_buffer_idx_ < join_buffer_.size()) {
-                auto left_record = join_buffer_[join_buffer_idx_++].get();
-
-                if (check_join_conds(left_record, right_record)) {
-                    auto rec = std::make_unique<RmRecord>(len_);
-                    memcpy(rec->data, left_record->data, left_record->size);
-                    memcpy(rec->data + left_record->size, right_record->data, right_record->size);
-                    tuple_buffer_.push_back(std::move(rec));
+        if (emitting_null_records_) {
+            null_emit_idx_++;
+            return;
+        }
+        
+        while (true) {
+            left_idx_++;
+            
+            if (left_idx_ >= left_buffer_.size()) {
+                right_->nextTuple();
+                
+                if (right_->is_end()) {
+                    if (join_type_ == LEFT_JOIN) {
+                        emitting_null_records_ = true;
+                        null_emit_idx_ = 0;
+                    }
                     return;
                 }
+                
+                cur_right_record = right_->Next();
+                left_idx_ = 0;
             }
-
-            // Move to the next right record
-            right_->nextTuple();
-
-            // If at the end of the right records, refill join buffer from left records
-            if (right_->is_end()) {
-                if (!left_->is_end()) {
-                    right_->beginTuple();
-                }
-
-                join_buffer_.clear();
-                while (!left_->is_end() && join_buffer_.size() < 30000) {
-                    join_buffer_.push_back(std::move(left_->Next()));
-                    left_->nextTuple();
-                }
+            
+            auto left_record = left_buffer_[left_idx_].get();
+            auto right_record = cur_right_record.get();
+            
+            if (fed_conds_.empty() || check_join_conds(left_record, right_record)) {
+                left_matched_[left_idx_] = true;
+                return;
             }
-
-            // Fetch the next right record
-            cur_right_record = right_->Next();
-            join_buffer_idx_ = 0;
         }
     }
 
     std::unique_ptr<RmRecord> Next() override {
-        if (!tuple_buffer_.empty()) {
-            auto tuple = std::move(tuple_buffer_[0]);
-            tuple_buffer_.pop_back();
-            return tuple;
-        } else {
+        if (emitting_null_records_) {
+            while (null_emit_idx_ < left_buffer_.size()) {
+                if (!left_matched_[null_emit_idx_]) {
+                    auto left_record = left_buffer_[null_emit_idx_].get();
+                    auto rec = std::make_unique<RmRecord>(len_);
+                    memcpy(rec->data, left_record->data, left_record->size);
+                    memcpy(rec->data + left_record->size, null_right_record_->data, null_right_record_->size);
+                    return rec;
+                }
+                null_emit_idx_++;
+            }
             return nullptr;
         }
+        
+        if (left_idx_ < left_buffer_.size()) {
+            auto left_record = left_buffer_[left_idx_].get();
+            auto right_record = cur_right_record.get();
+            auto rec = std::make_unique<RmRecord>(len_);
+            memcpy(rec->data, left_record->data, left_record->size);
+            memcpy(rec->data + left_record->size, right_record->data, right_record->size);
+            return rec;
+        }
+        return nullptr;
     }
 
     void feed(const std::map<TabCol, Value>& feed_dict) override {
@@ -151,7 +175,12 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
 
     const std::vector<ColMeta>& cols() const override { return cols_; }
 
-    bool is_end() const override { return right_->is_end(); }
+    bool is_end() const override {
+        if (emitting_null_records_) {
+            return null_emit_idx_ >= left_buffer_.size();
+        }
+        return right_->is_end() && left_idx_ >= left_buffer_.size();
+    }
 
     Rid& rid() override { return _abstract_rid; }
 
@@ -171,11 +200,9 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
         char* rhs;
         ColType rhs_type;
         if (cond.is_rhs_val) {
-            // value
             rhs_type = cond.rhs_val.type;
             rhs = cond.rhs_val.raw->data;
         } else {
-            // column
             auto rhs_col = get_col(rec_cols, cond.rhs_col);
             rhs_type = rhs_col->type;
             rhs = rec->data + rhs_col->offset;
@@ -200,11 +227,9 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
     }
 
     bool check_join_conds(const RmRecord* left_record, const RmRecord* right_record) {
-        // Create a copy of fed_conds for modification
         auto fed_conds = fed_conds_;
         int i = 0;
 
-        // Update fed_conds based on right_record
         for (auto& cond : fed_conds) {
             if (!cond.is_rhs_val && cond.rhs_col.tab_name != left_->get_tab_name()) {
                 cond.is_rhs_val = true;
@@ -235,7 +260,6 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
             }
         }
 
-        // Check all conditions
         return std::all_of(fed_conds.begin(), fed_conds.end(),
                            [&](const Condition& fed_cond) {
                                return check_join_cond(left_->cols(), fed_cond, left_record);

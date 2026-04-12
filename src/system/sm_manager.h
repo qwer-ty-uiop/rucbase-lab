@@ -22,6 +22,7 @@ struct ColDef {
     std::string name;  // Column name
     ColType type;      // Type of column
     int len;           // Length of column
+    bool is_primary;   // Whether this column is a primary key
 };
 
 /* 系统管理器，负责元数据管理和DDL语句的执行 */

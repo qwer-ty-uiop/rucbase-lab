@@ -81,22 +81,18 @@ class ScanPlan : public Plan
 class JoinPlan : public Plan
 {
     public:
-        JoinPlan(PlanTag tag, std::shared_ptr<Plan> left, std::shared_ptr<Plan> right, std::vector<Condition> conds)
+        JoinPlan(PlanTag tag, std::shared_ptr<Plan> left, std::shared_ptr<Plan> right, std::vector<Condition> conds, JoinType join_type = INNER_JOIN)
         {
             Plan::tag = tag;
             left_ = std::move(left);
             right_ = std::move(right);
             conds_ = std::move(conds);
-            type = INNER_JOIN;
+            type = join_type;
         }
         ~JoinPlan(){}
-        // 左节点
         std::shared_ptr<Plan> left_;
-        // 右节点
         std::shared_ptr<Plan> right_;
-        // 连接条件
         std::vector<Condition> conds_;
-        // future TODO: 后续可以支持的连接类型
         JoinType type;
         
 };

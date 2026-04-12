@@ -29,10 +29,13 @@ Thumbs.db
 # 测试和日志文件
 *.log
 *.txt
-*.md
 *.rst
 test_db/
 test_*
+
+# 不忽略README.md文件
+!README.md
+!src/**/README.md
 
 # 依赖库和第三方文件
 deps/
