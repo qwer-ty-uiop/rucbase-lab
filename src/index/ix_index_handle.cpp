@@ -303,14 +303,12 @@ std::shared_ptr<IxNodeHandle> IxIndexHandle::split(IxNodeHandle* node) {
 std::shared_ptr<IxNodeHandle> IxIndexHandle::sorted_split(IxNodeHandle* node) {
     // 1. 将原结点的键值对平均分配，右半部分分裂为新的右兄弟结点
     //    需要初始化新节点的page_hdr内容
-    // 2. 如果新的右兄弟结点是叶子结点，更新新旧节点的prev_leaf和next_leaf指针
-    //    为新节点分配键值对，更新旧节点的键值对数记录
-    // 3. 如果新的右兄弟结点不是叶子结点，更新该结点的所有孩子结点的父节点信息(使用IxIndexHandle::maintain_child())
     std::shared_ptr<IxNodeHandle> split_ = create_node();
     split_->page_hdr->is_leaf = true;
     split_->page_hdr->parent = node->page_hdr->parent;
     split_->page_hdr->next_free_page_no = node->page_hdr->next_free_page_no;
     split_->page_hdr->num_key = 0;
+    // 2. 如果新的右兄弟结点是叶子结点，更新新旧节点的prev_leaf和next_leaf指针
     head_->page_hdr->prev_leaf = split_->get_page_no();
     split_->page_hdr->prev_leaf = node->get_page_no();
     split_->page_hdr->next_leaf = node->page_hdr->next_leaf;
@@ -347,6 +345,7 @@ void IxIndexHandle::insert_into_parent(IxNodeHandle* old_node, const char* key, 
         new_node->page_hdr->parent = old_node->page_hdr->parent = new_root->get_page_no();
         // 更新file_hdr_中的根节点页号
         file_hdr_->root_page_ = new_root->get_page_no();
+        buffer_pool_manager_->unpin_page(new_root->get_page_id(), true);
     } else {
         // 2. 获取原结点（old_node）的父亲结点
         std::shared_ptr<IxNodeHandle> parent = fetch_node(old_node->get_parent_page_no());
@@ -357,9 +356,9 @@ void IxIndexHandle::insert_into_parent(IxNodeHandle* old_node, const char* key, 
         if (parent->get_size() == parent->get_max_size()) {
             std::shared_ptr<IxNodeHandle> split_parent = split(parent.get());
             insert_into_parent(parent.get(), split_parent->get_key(0), split_parent.get(), txn);
-            // buffer_pool_manager_->unpin_page( split_->get_page_id(), true );
+            buffer_pool_manager_->unpin_page(split_parent->get_page_id(), true);
         }
-        // buffer_pool_manager_->unpin_page( parent->get_page_id(), true );
+        buffer_pool_manager_->unpin_page(parent->get_page_id(), true);
     }
 }
 
