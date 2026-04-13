@@ -13,6 +13,7 @@ See the Mulan PSL v2 for more details. */
 #include <cerrno>
 #include <cstring>
 #include <string>
+#include <system_error>
 #include <vector>
 
 class RMDBError : public std::exception {
@@ -36,7 +37,11 @@ class InternalError : public RMDBError {
 // PF errors
 class UnixError : public RMDBError {
    public:
+    // 从 errno 构造（用于 POSIX 系统调用失败）
     UnixError() : RMDBError(strerror(errno)) {}
+    
+    // 从 std::error_code 构造（用于 C++ 标准库操作失败）
+    explicit UnixError(const std::error_code& ec) : RMDBError(ec.message()) {}
 };
 class UniqueConstraintError: public RMDBError {
    public:

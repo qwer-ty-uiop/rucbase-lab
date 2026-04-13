@@ -17,6 +17,8 @@ See the Mulan PSL v2 for more details. */
 #include <atomic>
 #include <fstream>
 #include <iostream>
+#include <mutex>
+#include <set>
 #include <string>
 #include <unordered_map>
 
@@ -41,7 +43,7 @@ class DiskManager {
 
     page_id_t allocate_page(int fd);
 
-    void deallocate_page(page_id_t page_id);
+    void deallocate_page(int fd, page_id_t page_no);
 
     /*目录操作*/
     bool is_dir(const std::string& path);
@@ -104,6 +106,18 @@ class DiskManager {
         fd2path_;  //<Page fd,Page文件磁盘路径>哈希表
 
     int log_fd_ = -1;  // WAL日志文件的文件句柄，默认为-1，代表未打开日志文件
+    
+    // 页面分配相关
     std::atomic<page_id_t>
-        fd2pageno_[MAX_FD]{};  // 文件中已经分配的页面个数，初始值为0
+        fd2pageno_[MAX_FD]{};  // 文件中已分配的最大页面编号+1，初始值为0
+    
+    // 空闲页面管理：每个文件维护一个有序的空闲页面集合
+    // 使用 set 而非 unordered_set 是为了：
+    // 1. 有序遍历便于调试
+    // 2. 可以快速获取最小/最大的空闲页号
+    std::set<page_id_t> free_pages_[MAX_FD];
+    
+    // 空闲页面集合的互斥锁，保证线程安全
+    // 使用数组而非单个锁是为了减少锁竞争，不同文件的分配可以并行
+    std::mutex free_pages_mutex_[MAX_FD];
 };
