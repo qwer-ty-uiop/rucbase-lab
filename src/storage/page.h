@@ -10,6 +10,8 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
+#include <condition_variable>
+
 #include "common/config.h"
 #include "common/rwlatch.h"
 
@@ -91,4 +93,11 @@ class Page {
 
     /** The latch for concurrent access to this page. */
     ReaderWriterLatch rwlatch_;
+
+    /** 页面正在从磁盘加载中，其他线程应等待 I/O 完成后再访问 */
+    bool io_pending_ = false;
+
+    /** 配合 io_pending_ 使用，通知等待 I/O 完成的线程
+     *  使用 condition_variable_any 以支持 shared_lock 等待 */
+    std::condition_variable_any io_cv_;
 };
