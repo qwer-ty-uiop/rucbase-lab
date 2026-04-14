@@ -120,4 +120,7 @@ class DiskManager {
     // 空闲页面集合的互斥锁，保证线程安全
     // 使用数组而非单个锁是为了减少锁竞争，不同文件的分配可以并行
     std::mutex free_pages_mutex_[MAX_FD];
+
+    // 文件操作互斥锁，保护 path2fd_ 和 fd2path_ 的并发访问
+    std::mutex file_mutex_;
 };

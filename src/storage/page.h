@@ -86,8 +86,10 @@ class Page {
      */
     char data_[PAGE_SIZE] = {};
 
-    /** 脏页判断 */
-    bool is_dirty_ = false;
+    /** 脏页标记。
+     *  使用 atomic 因为在 shared_lock 路径中可能被读取（flush_page），
+     *  同时在 unique_lock 路径中被写入（unpin_page），需要保证可见性 */
+    std::atomic<bool> is_dirty_{false};
 
     /** The pin count of this page.
      *  使用 atomic 因为在 fetch_page 的 shared_lock 路径中需要并发自增，
@@ -97,8 +99,10 @@ class Page {
     /** The latch for concurrent access to this page. */
     ReaderWriterLatch rwlatch_;
 
-    /** 页面正在从磁盘加载中，其他线程应等待 I/O 完成后再访问 */
-    bool io_pending_ = false;
+    /** 页面正在从磁盘加载中，其他线程应等待 I/O 完成后再访问。
+     *  使用 atomic 保证跨线程可见性：设置线程（写锁）和等待线程（读锁）
+     *  可能不在同一个锁周期内，需要 atomic 的内存序保证 */
+    std::atomic<bool> io_pending_{false};
 
     /** 配合 io_pending_ 使用，通知等待 I/O 完成的线程
      *  使用 condition_variable_any 以支持 shared_lock 等待 */

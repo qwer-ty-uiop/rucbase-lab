@@ -228,17 +228,13 @@ void DiskManager::create_file(const std::string& path) {
  * @throws {UnixError} 文件已打开或删除失败
  */
 void DiskManager::destroy_file(const std::string& path) {
-    // 检查文件是否存在
+    std::lock_guard<std::mutex> lock(file_mutex_);
     if (!fs::exists(path)) {
         throw FileNotFoundError(path);
     }
-    
-    // 检查文件是否已打开（不能删除已打开的文件）
     if (path2fd_.find(path) != path2fd_.end()) {
         throw UnixError();
     }
-    
-    // 使用 filesystem 删除文件
     std::error_code ec;
     if (!fs::remove(path, ec)) {
         throw UnixError(ec);
@@ -254,27 +250,20 @@ void DiskManager::destroy_file(const std::string& path) {
  * @throws {UnixError} 打开失败
  */
 int DiskManager::open_file(const std::string& path) {
-    // 检查文件是否存在
+    std::lock_guard<std::mutex> lock(file_mutex_);
     if (!fs::exists(path)) {
         throw FileNotFoundError(path);
     }
-    
-    // 如果文件已打开，直接返回已有的 fd（避免重复打开）
     auto it = path2fd_.find(path);
     if (it != path2fd_.end()) {
         return it->second;
     }
-    
-    // 打开文件（必须用 POSIX open，因为 pread/pwrite 需要 fd）
     int fd = ::open(path.c_str(), O_RDWR);
     if (fd < 0) {
         throw UnixError();
     }
-    
-    // 更新映射表
     path2fd_[path] = fd;
     fd2path_[fd] = path;
-    
     return fd;
 }
 
@@ -286,18 +275,14 @@ int DiskManager::open_file(const std::string& path) {
  * @throws {UnixError} 关闭失败
  */
 void DiskManager::close_file(int fd) {
-    // 检查文件是否已打开
+    std::lock_guard<std::mutex> lock(file_mutex_);
     auto it = fd2path_.find(fd);
     if (it == fd2path_.end()) {
         throw FileNotOpenError(fd);
     }
-    
-    // 从映射表中移除（先移除，再关闭）
     std::string path = it->second;
     path2fd_.erase(path);
     fd2path_.erase(it);
-    
-    // 关闭文件描述符
     if (::close(fd) < 0) {
         throw UnixError();
     }
@@ -320,6 +305,7 @@ int DiskManager::get_file_size(const std::string& file_name) {
  * @param {int} fd 文件句柄
  */
 std::string DiskManager::get_file_name(int fd) {
+    std::lock_guard<std::mutex> lock(file_mutex_);
     if (!fd2path_.count(fd)) {
         throw FileNotOpenError(fd);
     }
@@ -332,10 +318,14 @@ std::string DiskManager::get_file_name(int fd) {
  * @param {string} &file_name 文件名
  */
 int DiskManager::get_file_fd(const std::string& file_name) {
-    if (!path2fd_.count(file_name)) {
-        return open_file(file_name);
+    {
+        std::lock_guard<std::mutex> lock(file_mutex_);
+        auto it = path2fd_.find(file_name);
+        if (it != path2fd_.end()) {
+            return it->second;
+        }
     }
-    return path2fd_[file_name];
+    return open_file(file_name);
 }
 
 /**
