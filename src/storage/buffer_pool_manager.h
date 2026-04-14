@@ -75,5 +75,8 @@ class BufferPoolManager {
 
     void update_page(Page* page, PageId new_page_id, frame_id_t new_frame_id);
 
+    template<typename Lock>
+    bool wait_io_and_verify(Lock& lock, Page* page, PageId page_id, frame_id_t frame_id);
+
     std::unique_ptr<Replacer> create_replacer(size_t pool_size);
 };
