@@ -10,6 +10,7 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
+#include <atomic>
 #include <condition_variable>
 
 #include "common/config.h"
@@ -88,8 +89,10 @@ class Page {
     /** 脏页判断 */
     bool is_dirty_ = false;
 
-    /** The pin count of this page. */
-    int pin_count_ = 0;
+    /** The pin count of this page.
+     *  使用 atomic 因为在 fetch_page 的 shared_lock 路径中需要并发自增，
+     *  普通 int 在多线程同时自增时是数据竞争（未定义行为） */
+    std::atomic<int> pin_count_{0};
 
     /** The latch for concurrent access to this page. */
     ReaderWriterLatch rwlatch_;
